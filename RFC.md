@@ -129,4 +129,17 @@ mutation UnclaimItem($itemId: ID!, $userId: ID!) {
 
 ## 5. Failure Scenarios
 
-Describe 3 failure scenarios, implications, and how the system should recover.
+Below are 3 possible failure modes of this project, and how they will be addressed.
+
+1. OCR Scanning Failure 
+
+When a user sends their photo to the system, the OCR scanning may not be perfect due to a number of different reasons. The photo could be grainy, there could be poor lighting, the receipt could be dirty, or the photo just doesn’t get through. In these scenarios, the user will be given some agency. They will have the option to resend their receipt to hopefully get a better scan. They will also have the option to correct names and/or prices on the receipt if the scan interprets them wrong, and the option to enter all the data manually if they have no access to a camera.
+
+2. Stale Data Request
+
+When a user is out at a restaurant, the wifi may be poor or their data might be slow. When making a request to the app, it may take longer than they expect, prompting them to make the request multiple times (spamming the “create group” button, etc). If the user makes the same exact request over and over again, duplicate requests will be ignored until the app confirms whether a connection has been made with the server or not. A user may also leave the group view in the middle of fetching information about what members have claimed what items. In this case, any interaction with the server will be cancelled, with something like abortController.
+
+
+3. Concurrent mutations and double claim (race condition & stale UI action)
+
+Multiple users could attempt to mutate the same shared state concurrently. For example, two clients claim the same receipt item at nearly the same time, or a user may attempt to claim an item using a stale UI view that fails to reflect the most recent ownership state. Additionally, duplicate submissions (e.g. double-clicking “Import Receipt”) may occur under poor network conditions. The backend will enforce the rule that the receipt item only has one active user. Items are claimed using unique identifiers or atomic conditional update, where the backend (server & database) permits claims on items currently unclaimed. When multiple users attempt to claim an item, only the first successful mutation (claim) is processed. Subsequent claims receive a conflict response via UI streaming. For duplicate “Import receipt” calls, an idempotency key will be used to prevent double-clicking from generating create two bills/jobs.
