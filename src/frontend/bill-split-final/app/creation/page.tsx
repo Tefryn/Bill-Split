@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Header } from "@/components/organisms/header";
@@ -25,6 +26,16 @@ export default function CreateGroupPage() {
     const [tip, setTip] = useState("");
     const [items, setItems] = useState<ItemProps[]>([]);
     const [members, setMembers] = useState<MemberProps[]>([]);
+
+    const router = useRouter();
+    
+    const handleCreation = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // send create group request to backend
+
+        router.push(`/group-view`);
+    };
 
     const addItem = (name: string, cost: number, shareable: boolean) => {
         const newItem = {name, cost, shareable};
@@ -162,7 +173,9 @@ export default function CreateGroupPage() {
             <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
         </div>
 
-        <button className="w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700">
+        <button 
+        onClick={handleCreation}
+        className="w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700">
           Create Group
         </button>
       </section>
