@@ -1,11 +1,15 @@
 package com.bill_split.app.data;
 
+import java.util.List;
+
 public class Item {
+  private Long id;
+
   private String name;
 
   private Long cost;
 
-  private Long[] claimedBy; // May change later to be String[] if using email
+  private List<String> claimedBy;
 
   private Boolean shareable;
 
@@ -29,11 +33,11 @@ public class Item {
     return name;
   }
 
-  public void setContent(String name) {
+  public void setName(String name) {
     this.name = name;
   }
 
-  public String getCost() {
+  public Long getCost() {
     return cost;
   }
 
@@ -41,11 +45,11 @@ public class Item {
     this.cost = cost;
   }
 
-  public Long[] getClaimedBy() {
+  public List<String> getClaimedBy() {
     return claimedBy;
   }
 
-  public void setClaimedBy(Long[] claimedBy) {
+  public void setClaimedBy(List<String> claimedBy) {
     this.claimedBy = claimedBy;
   }
 

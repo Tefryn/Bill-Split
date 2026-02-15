@@ -19,12 +19,27 @@ public class SessionController {
     }
 
     @QueryMapping
-    public Note fetchSession(@Argument Long sessionId) {
+    public Session fetchSession(@Argument Long sessionId) {
         return sessionService.getSessionById(sessionId).orElse(null);
     }
 
     @MutationMapping
     public Session createSession(@Argument SessionInput input) {
         return sessionService.createSession(input);
+    }
+
+    @MutationMapping
+    public Boolean joinSession(@Argument Long sessionId) {
+        return sessionService.joinSession(sessionId);
+    }
+
+    @MutationMapping
+    public Boolean unclaimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
+        return sessionService.unclaimItem(sessionId, itemId, userEmail);
+    }
+
+    @MutationMapping
+    public Boolean claimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
+        return sessionService.claimItem(sessionId, itemId, userEmail);
     }
 }

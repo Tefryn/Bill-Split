@@ -1,4 +1,4 @@
-package com.notes.app.config;
+package com.bill_split.app.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

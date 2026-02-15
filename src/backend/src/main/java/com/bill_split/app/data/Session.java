@@ -3,11 +3,7 @@ package com.bill_split.app.data;
 import jakarta.persistence.*;
 import org.javatuples.Pair;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-public class User {
-    public String email;
-    public Long total_cost;
-}
+import java.util.List;
 
 @Entity
 @Table(name = "SESSIONS")
@@ -22,10 +18,10 @@ public class Session {
   private String name;
 
   @Column(name = "ITEMS")
-  private Item[] items;
+  private List<Item> items;
 
   @Column(name = "USERS")
-  private User[] users; 
+  private List<User> users; 
 
   @Column(name = "TIP")
   private Long tip;
@@ -36,7 +32,7 @@ public class Session {
   public Session() {
   }
 
-  public Session(String name, Item[] items, Long tip, Long tax) {
+  public Session(String name, List<Item> items, Long tip, Long tax) {
     this.name = name;
     this.items = items;
     this.tip = tip;
@@ -59,19 +55,19 @@ public class Session {
     this.name = name;
   }
 
-  public Item[] getItems() {
+  public List<Item> getItems() {
     return items;
   }
 
-  public void setItems(Item[] items) {
+  public void setItems(List<Item> items) {
     this.items = items;
   }
 
-  public User[] getUsers() {
+  public List<User> getUsers() {
     return users;
   }
 
-  public void setUsers(User[] users) {
+  public void setUsers(List<User> users) {
     this.users = users;
   }
 
@@ -84,7 +80,7 @@ public class Session {
   }
 
     public Long getTax() {
-    return tip;
+    return tax;
   }
 
   public void setTax(Long tax) {
