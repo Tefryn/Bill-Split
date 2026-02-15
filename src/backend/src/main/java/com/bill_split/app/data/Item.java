@@ -1,37 +1,18 @@
 package com.bill_split.app.data;
 
-import jakarta.persistence.*;
-import java.time.Instant;
-
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-@Entity
-@Table(name = "ITEMS")
-@EntityListeners(AuditingEntityListener.class)
-public class Note {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "ID")
-  private Long id;
-
-  @Column(name = "NAME")
+public class Item {
   private String name;
 
-  @Column(name = "COST")
   private Long cost;
 
-  @Column(name = "CLAIMEDBY")
   private Long[] claimedBy; // May change later to be String[] if using email
 
-  @Column(name = "SHAREABLE")
   private Boolean shareable;
 
   public Item() {
   }
 
-  public Note(String name, Long cost) {
+  public Item(String name, Long cost) {
     this.name = name;
     this.cost = cost;
   }
