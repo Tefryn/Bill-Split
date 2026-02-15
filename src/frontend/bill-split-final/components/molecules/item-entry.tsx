@@ -4,24 +4,25 @@ import { Input } from "@/components/atoms/input";
 import { useState } from "react";
 
 interface ItemEntryProps {
-  addItem: (name: string, cost: number) => void;
+  addItem: (name: string, cost: number, shareable: boolean) => void;
 }
 
 export function ItemEntry({ addItem }: ItemEntryProps) {
   const [name, setName] = useState("");
   const [cost, setCost] = useState("");
+  const [shareable, setShareable] = useState(false);
 
   const handleAdd = () => {
     const numericCost = parseFloat(cost);
     if (name && !isNaN(numericCost)) {
-      addItem(name, numericCost);
-      // Reset fields after adding
+      addItem(name, numericCost, shareable);
       setName("");
-      setCost("");
     }
     else if (name && isNaN(numericCost)) {
       alert("Please enter a valid number for cost.");
     }
+    setCost("");
+
   };
 
   return (
@@ -41,6 +42,15 @@ export function ItemEntry({ addItem }: ItemEntryProps) {
           onChange={setCost} 
           placeholder="0.00" 
         />
+      </div>
+      <div className="w-32">
+        <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">Shareable?</label>
+        <button
+          onClick={() => setShareable(!shareable)}
+          className={`w-full py-2 rounded-md transition-colors ${shareable ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
+        >
+          {shareable ? "Yes" : "No"}
+        </button>
       </div>
       <button
         onClick={handleAdd}

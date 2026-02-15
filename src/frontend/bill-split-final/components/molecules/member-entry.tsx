@@ -13,7 +13,6 @@ export function MemberEntry({ addMember }: MemberEntryProps) {
   const handleAdd = () => {
     if (name) {
       addMember(name);
-      // Reset fields after adding
       setName("");
     }
   };

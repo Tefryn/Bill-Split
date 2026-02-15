@@ -25,7 +25,7 @@ export function Header({ title, subtitle, showBackButton, backHref }: HeaderProp
         </div>
       )}
 
-      <Heading level={1} className="text-4xl font-bold mb-2">
+      <Heading level={1} className="text-4xl text-white font-bold mb-2">
         {title}
       </Heading>
 
