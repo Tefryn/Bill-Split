@@ -1,6 +1,8 @@
 package com.bill_split.app.service;
 
+
 import com.bill_split.app.data.Session;
+import com.bill_split.app.graphql.SessionInput;
 import com.bill_split.app.data.Item;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
@@ -27,8 +29,8 @@ public class SessionService {
     return sessionRepository.findById(sessionId);
   }
 
-  public Session createSession(String name, List<Item> items, Long tip, Long tax) {
-    Session session = sessionRepository.save(new Session(name, items, tip, tax));
+  public Session createSession(SessionInput input) {
+    Session session = sessionRepository.save(new Session(input));
 
     // String event = session.getId() + "::" + content;
     // redis.opsForList().rightPush(SESSION_SUMMARY_EVENT_QUEUE, event); For OCR

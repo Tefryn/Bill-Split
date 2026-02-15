@@ -1,7 +1,9 @@
 package com.bill_split.app.graphql;
 
 import com.bill_split.app.data.Item;
+import com.bill_split.app.data.Session;
 import com.bill_split.app.service.SessionService;
+import com.bill_split.app.graphql.SessionInput;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -29,8 +31,8 @@ public class SessionController {
     }
 
     @MutationMapping
-    public Boolean joinSession(@Argument Long sessionId) {
-        return sessionService.joinSession(sessionId);
+    public Boolean joinSession(@Argument Long sessionId, @Argument String userEmail) {
+        return sessionService.joinSession(sessionId, userEmail);
     }
 
     @MutationMapping

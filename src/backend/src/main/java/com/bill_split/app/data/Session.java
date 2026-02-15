@@ -1,7 +1,7 @@
 package com.bill_split.app.data;
 
+import com.bill_split.app.graphql.SessionInput;
 import jakarta.persistence.*;
-import org.javatuples.Pair;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.util.List;
 
@@ -32,16 +32,17 @@ public class Session {
   public Session() {
   }
 
-  public Session(String name, List<Item> items, Long tip, Long tax) {
-    this.name = name;
-    this.items = items;
-    this.tip = tip;
-    this.tax = tax;
+  public Session(SessionInput input) {
+    this.name = input.getName();
+    this.items = input.getItems();
+    this.tip = input.getTip();
+    this.tax = input.getTax();
   }
 
   public Long getId() {
     return id;
   }
+
 
   public void setId(Long id) {
     this.id = id;
