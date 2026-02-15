@@ -7,20 +7,24 @@ import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/item-entry";
 import { MemberEntry } from "@/components/molecules/member-entry";
 import { json } from "stream/consumers";
+import { group } from "console";
 
 interface ItemProps {
     name: string;
     cost: number;
     shareable: boolean;
+    claimedBy: string[];
 }
 
-interface MemberProps {
-    name: string;
+interface GroupProps {
+    groupName: string;
+    items: ItemProps[];
+    members: string[];
+    tax: number;
+    tip: number;
 }
 
 export default function GroupView() {
-    const [user, setUser] = useState("");
-    const [status, setStatus] = useState("");
 
     // hard coded initial state for testing purposes
     const testGroup = {
@@ -35,7 +39,10 @@ export default function GroupView() {
         tip: 10
     }
 
-    let groupInView = testGroup;
+    const [user, setUser] = useState("");
+    const [status, setStatus] = useState("");
+    const [groupInView, setGroupInView] = useState<GroupProps>(testGroup);
+    const [memberTotal, setMemberTotal] = useState(0);
 
     // handleClaim
     // get the item named and user name
@@ -44,9 +51,30 @@ export default function GroupView() {
     // if not shareable, check if claimedBy is empty
 
     const handleClaim = (name: string) => {
+        if (name === "" || user === "") {
+            setStatus("Please select your name and an item to claim.");
+            return;
+        }
+        let oldGroup = groupInView;
         const itemName = name;
         const userName = user;
-        setStatus(itemName);
+        const itemIndex = groupInView.items.findIndex(item => item.name === itemName);
+        const item = groupInView.items[itemIndex];
+        if (!item.shareable && item.claimedBy.length >= 1) {
+            setStatus("This item is not shareable and has already been claimed by " + item.claimedBy[0]);
+        }
+        else if (!item.claimedBy.includes(userName)) {
+            oldGroup.items[itemIndex].claimedBy.push(userName);
+            setGroupInView(oldGroup);
+            setStatus("You have claimed " + itemName);
+            setMemberTotal(personalTotal(userName));
+        }
+    }
+
+    const personalTotal = (member: string) => {
+        const itemsClaimed = groupInView.items.filter(item => item.claimedBy.includes(member));
+        const total = itemsClaimed.reduce((sum, item) => sum + item.cost / (item.shareable ? item.claimedBy.length : 1), 0);
+        return total;
     }
 
     const itemTotal = () => {
@@ -78,7 +106,7 @@ export default function GroupView() {
 
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
-            <h2 className="text-lg font-semibold mb-4 text-black">Claim: {status !== "" ? status + " already claimed" : ""}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Claim: {status !== "" ? status : ""}</h2>
             <ul className="space-y-2">
                 {groupInView.items.map((item, index) => (
                     <button 
@@ -93,11 +121,14 @@ export default function GroupView() {
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">{ user == "" ? "Who are you?" : user + "'s total: "}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">{ user == "" ? "Who are you?" : user + "'s total: $" + memberTotal.toFixed(2)}</h2>
             <ul className="space-y-2">
                 {groupInView.members.map((member, index) => (
                     <button 
-                        onClick = {() => setUser(member)}
+                        onClick = {() => {
+                            setUser(member);
+                            setMemberTotal(personalTotal(member));
+                        }}
                         key={index}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
                     >
@@ -124,7 +155,7 @@ export default function GroupView() {
                 onClick = {() => console.log(JSON.stringify(groupInView))}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
             >
-                check group
+                check group (debug)
             </button>
         </div>
       </section>
