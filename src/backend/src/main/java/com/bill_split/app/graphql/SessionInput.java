@@ -27,7 +27,7 @@ public class SessionInput {
     this.name = name;
   }
 
-  public Long gatTax() {
+  public Long getTax() {
     return tax;
   }
 
