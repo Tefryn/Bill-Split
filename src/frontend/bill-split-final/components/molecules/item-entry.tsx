@@ -4,20 +4,23 @@ import { Input } from "@/components/atoms/input";
 import { useState } from "react";
 
 interface ItemEntryProps {
-  onAdd: (item: { name: string; cost: number }) => void;
+  addItem: (name: string, cost: number) => void;
 }
 
-export function ItemEntry({ onAdd }: ItemEntryProps) {
+export function ItemEntry({ addItem }: ItemEntryProps) {
   const [name, setName] = useState("");
   const [cost, setCost] = useState("");
 
   const handleAdd = () => {
     const numericCost = parseFloat(cost);
     if (name && !isNaN(numericCost)) {
-      onAdd({ name, cost: numericCost });
+      addItem(name, numericCost);
       // Reset fields after adding
       setName("");
       setCost("");
+    }
+    else if (name && isNaN(numericCost)) {
+      alert("Please enter a valid number for cost.");
     }
   };
 

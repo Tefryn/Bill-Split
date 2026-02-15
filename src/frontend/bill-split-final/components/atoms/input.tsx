@@ -3,6 +3,7 @@ interface InputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   id?: string;
+  type?: "text" | "number"
   required?: boolean;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
