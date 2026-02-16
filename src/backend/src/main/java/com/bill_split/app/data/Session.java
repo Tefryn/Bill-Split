@@ -17,10 +17,12 @@ public class Session {
   @Column(name = "NAME")
   private String name;
 
-  @Column(name = "ITEMS")
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+  @JoinColumn(name = "session_id")
   private List<Item> items;
 
-  @Column(name = "USERS")
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+  @JoinColumn(name = "session_id")
   private List<User> users; 
 
   @Column(name = "TIP")

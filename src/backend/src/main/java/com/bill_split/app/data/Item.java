@@ -1,16 +1,27 @@
 package com.bill_split.app.data;
 
 import java.util.List;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "items")
 public class Item {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(nullable = false)
   private String name;
 
+  @Column(nullable = false)
   private Long cost;
 
+  @ElementCollection
+  @CollectionTable(name = "item_claimed_by", joinColumns = @JoinColumn(name = "item_id"))
+  @Column(name = "user_name")
   private List<String> claimedBy;
 
+  @Column
   private Boolean shareable;
 
   public Item() {
