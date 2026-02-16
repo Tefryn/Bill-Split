@@ -1,20 +1,21 @@
 package com.bill_split.app.data;
-
+import com.bill_split.app.data.Item;
+import com.bill_split.app.data.User;
 import com.bill_split.app.graphql.SessionInput;
 import jakarta.persistence.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.util.List;
 
 @Entity
-@Table(name = "SESSIONS")
+@Table(name = "sessions")
 @EntityListeners(AuditingEntityListener.class)
 public class Session {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "ID")
+  @Column(name = "id") 
   private Long id;
 
-  @Column(name = "NAME")
+  @Column(name = "name")
   private String name;
 
   @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
@@ -25,10 +26,10 @@ public class Session {
   @JoinColumn(name = "session_id")
   private List<User> users; 
 
-  @Column(name = "TIP")
+  @Column(name = "tip")
   private Long tip;
 
-  @Column(name = "TAX")
+  @Column(name = "tax")
   private Long tax;
 
   public Session() {
@@ -37,6 +38,7 @@ public class Session {
   public Session(SessionInput input) {
     this.name = input.getName();
     this.items = input.getItems();
+    this.users = input.getUsers();
     this.tip = input.getTip();
     this.tax = input.getTax();
   }

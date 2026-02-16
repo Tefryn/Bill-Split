@@ -30,6 +30,7 @@ public class SessionService {
   }
 
   public Session createSession(SessionInput input) {
+    System.out.print("Creating session with name: " + input.getItems());
     Session session = sessionRepository.save(new Session(input));
 
     // String event = session.getId() + "::" + content;
@@ -47,7 +48,7 @@ public class SessionService {
       List<User> users = session.getUsers();
       
       User newUser = new User();
-      newUser.email = userEmail;
+      newUser.setEmail(userEmail);
       
       if (users.contains(userEmail)) {
         return false;
@@ -66,7 +67,7 @@ public class SessionService {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
-      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.email.equals(userEmail)).findFirst();
+      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
       Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId() == itemId).findFirst();
 
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
@@ -82,7 +83,7 @@ public class SessionService {
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      user.total_cost += item.getCost();
+      user.setTotal_cost(user.getTotal_cost() + item.getCost());
       sessionRepository.save(session);
 
       return true;
@@ -94,7 +95,7 @@ public class SessionService {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
-      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.email.equals(userEmail)).findFirst();
+      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
       Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId() == itemId).findFirst();
 
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
@@ -110,7 +111,7 @@ public class SessionService {
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      user.total_cost -= item.getCost();
+      user.setTotal_cost(user.getTotal_cost() - item.getCost());
       sessionRepository.save(session);
 
       return true;

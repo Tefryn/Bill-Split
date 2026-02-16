@@ -1,10 +1,12 @@
 package com.bill_split.app.graphql;
 
+import com.bill_split.app.data.User;
 import  com.bill_split.app.data.Item;
 import java.util.List;
 
 public class SessionInput {
   private List<Item> items;
+  private List<User> users;
   private String name;
   private Long tax;
   private Long tip;
@@ -18,6 +20,14 @@ public class SessionInput {
 
   public void setItems(List<Item> items) {
     this.items = items;
+  }
+
+  public List<User> getUsers() {
+    return users;
+  }
+
+  public void setUsers(List<User> users) {
+    this.users = users;
   }
 
   public String getName() {

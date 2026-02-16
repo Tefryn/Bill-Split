@@ -18,21 +18,21 @@ type Session {
 }
 
 type Item {
-  id: ID!
+  id: ID
   name: String!
-  cost: Int!
-  claimedBy: [String!]!
+  cost: Float!
+  claimedBy: [String!]
   shareable: Boolean
 }
 
 type User {
-  id: ID!
   email: String!
-  total_cost: Int
+  total_cost: Float
 }
 
 input CreateSessionInput {
   items: [ItemInput!]!
+  users: [UserInput!]!
   tax: Float!
   tip: Float!
   name: String!
@@ -40,7 +40,12 @@ input CreateSessionInput {
 
 input ItemInput {
   name: String!
-  cost: Int!
+  cost: Float!
   claimedBy: [String!]
   shareable: Boolean
+}
+
+input UserInput {
+  email: String!
+  total_cost: Float
 }

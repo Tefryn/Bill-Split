@@ -8,21 +8,34 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
-    public String email;
-
-    @Column
-    public Long total_cost;
-
-    public User() {
-    }
-
+    
+    @Column(name = "email")
+    private String email;
+    
+    @Column(name = "total_cost")
+    private Long total_cost;
+    
     public Long getId() {
         return id;
     }
-
+    
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public Long getTotal_cost() {
+        return total_cost;
+    }
+    
+    public void setTotal_cost(Long total_cost) {
+        this.total_cost = total_cost;
     }
 }
