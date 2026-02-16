@@ -1,0 +1,51 @@
+type Query {
+  fetchSession(sessionId: ID!): Session
+}
+
+type Mutation {
+  createSession(input: CreateSessionInput!): Session!
+  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
+  unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
+} 
+
+type Session {
+  id: ID!
+  name: String!
+  items: [Item!]!
+  users: [User]!
+  tip: Float!
+  tax: Float!
+}
+
+type Item {
+  id: ID
+  name: String!
+  cost: Float!
+  claimedBy: [String!]
+  shareable: Boolean
+}
+
+type User {
+  email: String!
+  total_cost: Float
+}
+
+input CreateSessionInput {
+  items: [ItemInput!]!
+  users: [UserInput!]!
+  tax: Float!
+  tip: Float!
+  name: String!
+}
+
+input ItemInput {
+  name: String!
+  cost: Float!
+  claimedBy: [String!]
+  shareable: Boolean
+}
+
+input UserInput {
+  email: String!
+  total_cost: Float
+}
