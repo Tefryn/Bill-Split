@@ -21,24 +21,27 @@ Ex: What states would a bill item go through?
 Create schemas for the data models (ex: id, sessions, items, etc):
 ```
 sessions:
- - id: ID
- - name: str
- - items:
-    - id: ID
-    - cost: decimal
-    - name: str
-    - claimedBy: ID[]
-    - shareable: bool
- - users: 
-    - id: ID (foreign key to Profile)
-    - total cost: decimal
- - tip: decimal (percentage)
- - tax: decimal (percentage or amount?)
+ - id: ID 
+ - name: String
+ - items: Item[] 
+    - id: ID 
+    - cost: Long 
+    - name: String
+    - claimedBy: String[]
+    - shareable: Boolean
+ - users: User[]
+    - email: String 
+    - total_cost: Long 
+ - tip: Long 
+ - tax: Long 
 
 profiles
  - id: ID
- - name: str
+ - name: String
+ - email: String
  - dietary restrictions: str[]
+
+
 ```
 
 Considerations: What conditions must never happen in your system?
@@ -58,72 +61,113 @@ As for additional considerations:
  - we'll have to make sure that we properly handle race conditions when multiple users try to claim the same unshareable item at once.
  - As we won't implement OCR for our initial CRUD app, we will need 2 versions of our createGroup function, one that accepts a list of items, and the other that accepts images.
 
-Item type:
-```
-class Item:
-    title: str
-    cost: int
-    claimedBy: ID[]
-    shareable: bool
-```
+**Implemented GraphQL Schema:**
 
-Group input:
+Types:
 ```
-input CreateGroupInput {
-  items: Item[]!
-  tax: decimal!
-  tip: decimal!
-  name: String
+type Session {
+  id: ID!
+  name: String!
+  items: [Item!]!
+  users: [User]!
+  tip: Float!
+  tax: Float!
 }
 
-scalar Receipt
+type Item {
+  id: ID
+  name: String!
+  cost: Float!
+  claimedBy: [String!]
+  shareable: Boolean
+}
+
+type User {
+  email: String!
+  total_cost: Float
+}
 ```
 
-Creating a group / Uploading a receipt:
+Input Types:
 ```
-# Version 1
-mutation CreateGroup($input: CreateGroupInput!) {
-  createGroup(input: $input) {
+input CreateSessionInput {
+  items: [ItemInput!]!
+  users: [UserInput!]!
+  tax: Float!
+  tip: Float!
+  name: String!
+}
+
+input ItemInput {
+  name: String!
+  cost: Float!
+  claimedBy: [String!]
+  shareable: Boolean
+}
+
+input UserInput {
+  email: String!
+  total_cost: Float
+}
+```
+
+Creating a session:
+```
+mutation CreateSession($input: CreateSessionInput!) {
+  createSession(input: $input) {
     id
-  }
-} 
-
-# Version 2
-mutation CreateGroup($input: Receipt!) {
-  createGroup(input: $input) {
-    id
-  }
-} 
-```
-
-Fetch a group:
-```
-query fetchGroup($id: ID!) {
-  fetchGroup(id: $id) {
-    id, 
-    name, 
-    items,
-    users,
-    tip,
+    name
+    items {
+      id
+      name
+      cost
+      shareable
+      claimedBy
+    }
+    users {
+      email
+      total_cost
+    }
+    tip
     tax
   }
 }
 ```
 
-Claim / unclaim an item:
+Fetch a session:
 ```
-mutation ClaimItem($itemId: ID!, $userId: ID!) {
-  claimItem(itemId: $itemId, userId: $userId) {
-    success?,
-    total
+query FetchSession($sessionId: ID!) {
+  fetchSession(sessionId: $sessionId) {
+    id
+    name
+    items {
+      id
+      name
+      cost
+      shareable
+      claimedBy
+    }
+    users {
+      email
+      total_cost
+    }
+    tip
+    tax
   }
 }
+```
 
-mutation UnclaimItem($itemId: ID!, $userId: ID!) {
-  unclaimItem(itemId: $itemId, userId: $userId) {
-    success?, 
-    total
-  }
+Claim an item:
+```
+mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
+  claimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
+}
+```
+
+Unclaim an item:
+```
+mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
+  unclaimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
 }
 ```
 

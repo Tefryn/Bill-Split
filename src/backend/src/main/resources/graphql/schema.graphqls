@@ -4,8 +4,8 @@ type Query {
 
 type Mutation {
   createSession(input: CreateSessionInput!): Session!
-  claimItem(sessionId: ID!, itemId: ID!, userId: ID!): Boolean
-  unclaimItem(sessionId: ID!, itemId: ID!, userId: ID!): Boolean
+  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
+  unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
 } 
 
 type Session {

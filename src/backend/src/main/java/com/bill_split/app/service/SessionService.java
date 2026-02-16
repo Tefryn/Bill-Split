@@ -64,19 +64,22 @@ public class SessionService {
   }
 
   public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
+    System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
+      System.out.println("Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
       Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
-      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId() == itemId).findFirst();
+      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
+      System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
         return false;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
-      if (!item.getShareable() && item.getClaimedBy().size() != 0) {
+      if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
         return false;
       }
 
@@ -85,9 +88,11 @@ public class SessionService {
       item.setClaimedBy(claimedBy);
       user.setTotal_cost(user.getTotal_cost() + item.getCost());
       sessionRepository.save(session);
+      System.out.println("Claimed by list: " + item.getClaimedBy());
 
       return true;
     }
+    System.out.println("Session not found with id: " + sessionId);
     return false;
   }
 
@@ -96,7 +101,7 @@ public class SessionService {
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
       Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
-      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId() == itemId).findFirst();
+      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
         return false;

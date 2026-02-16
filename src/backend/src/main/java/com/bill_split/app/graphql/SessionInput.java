@@ -8,6 +8,7 @@ public class SessionInput {
   private List<Item> items;
   private List<User> users;
   private String name;
+  private Boolean shareable;
   private Long tax;
   private Long tip;
 

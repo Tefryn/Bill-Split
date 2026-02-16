@@ -13,7 +13,7 @@ public class User {
     private String email;
     
     @Column(name = "total_cost")
-    private Long total_cost;
+    private Long total_cost = 0L;
     
     public Long getId() {
         return id;

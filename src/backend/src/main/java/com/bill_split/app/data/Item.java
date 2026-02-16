@@ -17,7 +17,7 @@ public class Item {
   @ElementCollection
   private List<String> claimedBy;
 
-  private Boolean shareable;
+  private Boolean shareable = false;
 
   public Item() {
   }
