@@ -5,6 +5,7 @@ type Query {
 type Mutation {
   createSession(input: CreateSessionInput!): Session!
   claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
+  joinSession(sessionId: ID!, userEmail: String!): Boolean
   unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
 } 
 

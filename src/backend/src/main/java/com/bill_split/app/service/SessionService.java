@@ -50,7 +50,7 @@ public class SessionService {
       User newUser = new User();
       newUser.setEmail(userEmail);
       
-      if (users.contains(userEmail)) {
+       if (session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) {
         return false;
       }
 
