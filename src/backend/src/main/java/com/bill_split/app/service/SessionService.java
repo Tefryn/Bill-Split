@@ -29,6 +29,22 @@ public class SessionService {
     return sessionRepository.findById(sessionId);
   }
 
+  public Long getUserTotal(Long sessionId, String userEmail) {
+    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+    if (optionalSession.isPresent()) {
+      Session session = optionalSession.get();
+      List<User> users = session.getUsers();
+
+      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
+      if (!optionalUser.isPresent()) {
+        return 0L;
+      }
+      User user = optionalUser.get();
+      return user.getTotal_cost();
+    }
+    return 0L;
+  }
+
   public Session createSession(SessionInput input) {
     System.out.print("Creating session with name: " + input.getItems());
     Session session = sessionRepository.save(new Session(input));
@@ -50,7 +66,7 @@ public class SessionService {
       User newUser = new User();
       newUser.setEmail(userEmail);
       
-       if (session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) {
+      if (session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) {
         return false;
       }
 

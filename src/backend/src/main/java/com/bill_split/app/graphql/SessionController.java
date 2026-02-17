@@ -25,6 +25,11 @@ public class SessionController {
         return sessionService.getSessionById(sessionId).orElse(null);
     }
 
+    @QueryMapping
+    public Long getUserTotal(@Argument Long sessionId, @Argument String userEmail) {
+        return sessionService.getUserTotal(sessionId, userEmail);
+    }
+
     @MutationMapping
     public Session createSession(@Argument SessionInput input) {
         return sessionService.createSession(input);

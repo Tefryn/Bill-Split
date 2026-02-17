@@ -1,5 +1,6 @@
 type Query {
   fetchSession(sessionId: ID!): Session
+  getUserTotal(sessionId: ID!, userEmail: String!): Float
 }
 
 type Mutation {
