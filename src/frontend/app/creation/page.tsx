@@ -2,11 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/item-entry";
-import { MemberEntry } from "@/components/molecules/member-entry";
 
 interface ItemProps {
     name: string;
@@ -14,27 +13,83 @@ interface ItemProps {
     shareable: boolean;
 }
 
-interface MemberProps {
-    name: string;
-}
-
 export default function CreateGroupPage() {
     const searchParams = useSearchParams();
     const initialName = searchParams.get("name") || "";
     const [groupName, setGroupName] = useState(initialName);
+    const [userEmail, setUserEmail] = useState("");
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
     const [items, setItems] = useState<ItemProps[]>([]);
-    const [members, setMembers] = useState<MemberProps[]>([]);
+    const API_URL = "http://localhost:8080";
 
     const router = useRouter();
     
-    const handleCreation = (e: React.FormEvent) => {
+    const handleCreation = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // send create group request to backend
+        const mutation = `
+            mutation CreateSession($input: CreateSessionInput!) {
+                createSession(input: $input) {
+                    id
+                    name
+                    items {
+                        id
+                        name
+                        cost
+                        claimedBy
+                    }
+                    users {
+                        email
+                        total_cost
+                    }
+                    tip
+                    tax
+                }
+            }
+        `;
 
-        router.push(`/group-view`);
+        const sessionInput = {
+            name: groupName,
+            items: items.map(item => ({
+                name: item.name,
+                cost: item.cost,
+                shareable: item.shareable,
+                claimedBy: [],
+            })),
+            users: [{ email: userEmail, total_cost: 0 }],
+            tax: parseFloat(tax) || 0,
+            tip: parseFloat(tip) || 0,
+        };
+            
+        try {
+            const response = await fetch(`${API_URL}/graphql`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: mutation,
+                    variables: { 
+                        input: sessionInput
+                    }, 
+                }),
+            });
+            
+            const result = await response.json();
+            console.log(result)
+            
+            if (result.errors) {
+                console.error(`GraphQL Error: ${result.errors[0].message}`);
+            } else if (result.data?.createSession) {
+                const sessionId = result.data.createSession.id;
+                router.push(`/session/${sessionId}`);
+            } else {
+                console.error("Error: Failed to create session.");
+            }
+        } catch (err) {
+            console.error("Network error occurred.", err);
+        }
     };
 
     const addItem = (name: string, cost: number, shareable: boolean) => {
@@ -42,10 +97,6 @@ export default function CreateGroupPage() {
         setItems([newItem, ...items]);
     }
 
-    const addMember = (name: string) => {
-        const newMember = {name};
-        setMembers([newMember, ...members]);
-    }
     
     const itemTotal = () => {
         return items.reduce((total, item) => total + item.cost, 0);
@@ -97,12 +148,17 @@ export default function CreateGroupPage() {
             <ItemEntry addItem={addItem}></ItemEntry>
         </div>
 
-        {/* Member Entry */}
+        {/* Email Entry */}
         <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">
-                Add Members:
+                Your Email:
             </label>
-            <MemberEntry addMember={addMember}></MemberEntry>
+            <Input
+                type="text"
+                value={userEmail}
+                onChange={setUserEmail}
+                placeholder="Enter your email"
+            />
         </div>
 
         { /* Tax Entry */ }
@@ -151,14 +207,7 @@ export default function CreateGroupPage() {
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Members: {members.length}</h2>
-            <ul className="space-y-2">
-                {members.map((member, index) => (
-                    <li key={index} className="flex justify-between text-black items-center bg-black-50 p-3 rounded-md border">
-                        <span>{member.name}</span>
-                    </li>
-                ))}
-            </ul>
+            <h2 className="text-lg font-semibold mb-4 text-black">Your Email: {userEmail}</h2>
         </div>
 
         <div>
