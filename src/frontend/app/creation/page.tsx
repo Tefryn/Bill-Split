@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
@@ -13,10 +12,8 @@ interface ItemProps {
     shareable: boolean;
 }
 
-export default function CreateGroupPage() {
-    const searchParams = useSearchParams();
-    const initialName = searchParams.get("name") || "";
-    const [groupName, setGroupName] = useState(initialName);
+export default function CreateSessionPage() {
+    const [sessionName, setSessionName] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [tax, setTax] = useState("");
@@ -54,7 +51,7 @@ export default function CreateGroupPage() {
         `;
 
         const sessionInput = {
-            name: groupName,
+            name: sessionName,
             items: items.map(item => ({
                 name: item.name,
                 cost: item.cost,
@@ -127,21 +124,21 @@ export default function CreateGroupPage() {
     return (
     <main className="max-w-2xl mx-auto p-6">
       <Header 
-        title="Create Group" 
+        title="Create Session" 
         subtitle=""
         showBackButton 
         backHref="/" 
       />
 
       <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
-        {/* Group Name Entry */}
+        {/* Session Name Entry */}
         <div>
           <label className="block text-sm font-medium mb-2 text-gray-700">
-            Group Name
+            Session Name
           </label>
           <Input 
-            value={groupName} 
-            onChange={setGroupName} 
+            value={sessionName} 
+            onChange={setSessionName} 
             placeholder=""
           />
         </div>
@@ -197,7 +194,7 @@ export default function CreateGroupPage() {
 
         { /* Confirmation Display */ }
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Group Name: {groupName}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Session Name: {sessionName}</h2>
         </div>
 
         <div>
@@ -231,7 +228,7 @@ export default function CreateGroupPage() {
         <button 
         onClick={handleCreation}
         className="w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700">
-          Create Group
+          Create Session
         </button>
       </section>
     </main>
