@@ -1,18 +1,19 @@
 'use client';
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/atoms/input";
 import { useState } from "react";
 
 export default function Home() {
-  const [groupName, setGroupName] = useState("");
   const router = useRouter();
+  const [sessionId, setSessionId] = useState("");
 
-  const handleStart = (e: React.FormEvent) => {
+  const routeToCreation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (groupName.trim()) {
-      // sends group name to creation page
-      router.push(`/creation?name=${encodeURIComponent(groupName)}`);
-    }
+    router.push(`/creation`);
+  };
+
+  const joinSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`/join`);
   };
 
   return (
@@ -24,27 +25,28 @@ export default function Home() {
           </h1>
         </section>
 
-        <form onSubmit = {handleStart} className="mt-8 space-y-4">
-          <div className="text-left">
-            <label htmlFor="group-name" className="block text-sm font-medium text-gray-700 mb-1">
-              Enter Group Name
-            </label>
-            <Input
-              id="group-name"
-              placeholder=""
-              value={groupName}
-              onChange={setGroupName}
-              required
-            />
-          </div>
-          
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={sessionId}
+            onChange={(e) => setSessionId(e.target.value)}
+            placeholder="Enter Session ID"
+            className="flex-1 py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
           <button
-            type="submit"
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            onClick={joinSession}
+            className="py-3 px-6 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
           >
-            Create Your Group
+            Join
           </button>
-        </form>
+        </div>
+
+        <button
+          onClick={routeToCreation}
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+        >
+          Create Session
+        </button>
       </div>
     </main>
   );
