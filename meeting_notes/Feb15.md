@@ -1,4 +1,4 @@
-# Meeting Notes - February 7th
+# Meeting Notes - February 15th
 - Scribe: Eiko
 
 ## Important Updates:
