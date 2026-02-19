@@ -29,22 +29,6 @@ public class SessionService {
     return sessionRepository.findById(sessionId);
   }
 
-  public Long getUserTotal(Long sessionId, String userEmail) {
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      List<User> users = session.getUsers();
-
-      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
-      if (!optionalUser.isPresent()) {
-        return 0L;
-      }
-      User user = optionalUser.get();
-      return user.getTotal_cost();
-    }
-    return 0L;
-  }
-
   public Session createSession(SessionInput input) {
     System.out.print("Creating session with name: " + input.getItems());
     Session session = sessionRepository.save(new Session(input));
@@ -79,7 +63,7 @@ public class SessionService {
     return false; // Or throw an exception
   }
 
-  public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
+  public Long claimItem(Long sessionId, Long itemId, String userEmail) {
     System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
@@ -90,29 +74,29 @@ public class SessionService {
 
       System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return false;
+        return -1L;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
       if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
-        return false;
+        return -1L;
       }
 
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotal_cost(user.getTotal_cost() + item.getCost());
+      user.setTotalCost(user.getTotalCost() + item.getCost());
       sessionRepository.save(session);
       System.out.println("Claimed by list: " + item.getClaimedBy());
 
-      return true;
+      return user.getTotalCost();
     }
     System.out.println("Session not found with id: " + sessionId);
-    return false;
+    return -1L;
   }
 
-    public Boolean unclaimItem(Long sessionId, Long itemId, String userEmail) {
+    public Long unclaimItem(Long sessionId, Long itemId, String userEmail) {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
@@ -120,24 +104,24 @@ public class SessionService {
       Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return false;
+        return -1L;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
       if (!item.getClaimedBy().contains(userEmail)) {
-        return false;
+        return -1L;
       }
 
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotal_cost(user.getTotal_cost() - item.getCost());
+      user.setTotalCost(user.getTotalCost() - item.getCost());
       sessionRepository.save(session);
 
-      return true;
+      return user.getTotalCost();
     }
-    return false;
+    return -1L;
   }
 
 }

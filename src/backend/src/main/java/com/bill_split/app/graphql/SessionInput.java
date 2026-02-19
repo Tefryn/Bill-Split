@@ -39,6 +39,14 @@ public class SessionInput {
     this.name = name;
   }
 
+  public Boolean getShareable() {
+    return shareable;
+  }
+
+  public void setShareable(Boolean shareable) {
+    this.shareable = shareable;
+  }
+
   public Long getTax() {
     return tax;
   }

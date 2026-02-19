@@ -1,13 +1,12 @@
 type Query {
   fetchSession(sessionId: ID!): Session
-  getUserTotal(sessionId: ID!, userEmail: String!): Float
 }
 
 type Mutation {
   createSession(input: CreateSessionInput!): Session!
-  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
+  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Float
   joinSession(sessionId: ID!, userEmail: String!): Boolean
-  unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean
+  unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Float
 } 
 
 type Session {

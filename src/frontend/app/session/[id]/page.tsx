@@ -19,7 +19,7 @@ interface UserProps {
 }
 
 interface Session {
-    sessionId: number;
+    id: number;
     items: Item[];
     users: UserProps[];
     members: string[];
@@ -28,10 +28,10 @@ interface Session {
 }
 
 export default function SessionView() {
-    const [userTotal, setUserTotal] = useState(0);
+    const [userTotal, setUserTotal] = useState<number>(0);
     const [session, setSession] = useState<Session>();
     const API_URL = "http://localhost:8080";
-    const { sessionId } = useParams(); // make context?
+    const { id } = useParams(); // make context?
     const userEmail  = "eiko.reisz@gmail.com" // Hardcoded: make context
 
     console.log('result');
@@ -51,8 +51,21 @@ export default function SessionView() {
     const fetchSession = async () => {
         const query = `
             query FetchSession($sessionId: ID!) {
-                fetchSession(sessionId: $sessionId) {
-                    session
+                fetchSession(sessionId: $sessionId){
+                    id
+                    name
+                    items {
+                        id
+                        name
+                        cost
+                        claimedBy
+                    }
+                    users {
+                        email 
+                        total_cost
+                    }
+                    tip
+                    tax
                 }
             }
         `;
@@ -66,18 +79,18 @@ export default function SessionView() {
                 body: JSON.stringify({ 
                     query: query,
                     variables: { 
-                        sessionId: sessionId
+                        sessionId: id
                     }, 
                 }),
             });
 
             const result = await response.json();
-            console.log('result');
+            console.log(result.data?.claimItem);
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.fetchSession) {
-                return result.data.fetchSession.session;
+                return result.data.fetchSession;
                 // Set user total?
             } else {
                 console.error("Error: Failed to fetch session.");
@@ -89,20 +102,17 @@ export default function SessionView() {
 
     useEffect(() => {
         const loadSession = async () => {
-            console.log("ahhh")
-            if (sessionId) {
+            if (id) {
                 setSession(await fetchSession());
             }
         };
-        console.log("g")
         loadSession();
-    }, [sessionId]);
+    }, [id]);
     
     const handleClaim = async (itemId: number, userEmail: string) => {
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
                 claimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
-                getUserTotal(sessionId: $sessionId, userEmail: $userEmail)
             }
         `;
 
@@ -115,7 +125,7 @@ export default function SessionView() {
                 body: JSON.stringify({ 
                     query: mutation,
                     variables: { 
-                        sessionId: sessionId,
+                        sessionId: id,
                         itemId: itemId,
                         userEmail: userEmail
                     }, 
@@ -123,13 +133,13 @@ export default function SessionView() {
             });
 
             const result = await response.json();
-            console.log(result);
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.claimItem && result.data?.getUserTotal) {
-                setUserTotal(result.data.getUserTotal);
-                return result.data.claimItem;
+            } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
+                console.log(result.data.claimItem)
+                setUserTotal(result.data.claimItem);
+                return true;
             } else {
                 console.error("Error: Failed to claim item.");
             }
@@ -143,7 +153,6 @@ export default function SessionView() {
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
                 unclaimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
-                getUserTotal(sessionId: $sessionId, userEmail: $userEmail)
             }
         `;
 
@@ -156,7 +165,7 @@ export default function SessionView() {
                 body: JSON.stringify({ 
                     query: mutation,
                     variables: { 
-                        sessionId: sessionId,
+                        sessionId: id,
                         itemId: itemId,
                         userEmail: userEmail
                     }, 
@@ -164,13 +173,14 @@ export default function SessionView() {
             });
 
             const result = await response.json();
-            console.log(result);
+            console.log(result.data?.unclaimItem);
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.claimItem && result.data?.getUserTotal) {
-                setUserTotal(result.data.getUserTotal);
-                return result.data.unclaimItem;
+            } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
+                console.log(result.data.unclaimItem)
+                setUserTotal(result.data.unclaimItem);
+                return true;
             } else {
                 console.error("Error: Failed to unclaim item.");
             }
@@ -205,7 +215,7 @@ export default function SessionView() {
 
       <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Session ID: {session.sessionId}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Session ID: {session.id}</h2>
         </div>
 
         <div>

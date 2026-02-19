@@ -18,6 +18,7 @@ export default function CreateGroupPage() {
     const initialName = searchParams.get("name") || "";
     const [groupName, setGroupName] = useState(initialName);
     const [userEmail, setUserEmail] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
     const [items, setItems] = useState<ItemProps[]>([]);
@@ -26,6 +27,9 @@ export default function CreateGroupPage() {
     const router = useRouter();
     
     const handleCreation = async (e: React.FormEvent) => {
+        if(isLoading) {
+            return
+        }
         e.preventDefault();
 
         const mutation = `
@@ -40,7 +44,7 @@ export default function CreateGroupPage() {
                         claimedBy
                     }
                     users {
-                        email
+                        email 
                         total_cost
                     }
                     tip
@@ -63,6 +67,7 @@ export default function CreateGroupPage() {
         };
             
         try {
+            setIsLoading(true);
             const response = await fetch(`${API_URL}/graphql`, {
                 method: 'POST',
                 headers: {
@@ -90,6 +95,7 @@ export default function CreateGroupPage() {
         } catch (err) {
             console.error("Network error occurred.", err);
         }
+        setIsLoading(false);
     };
 
     const addItem = (name: string, cost: number, shareable: boolean) => {
@@ -102,7 +108,7 @@ export default function CreateGroupPage() {
         return items.reduce((total, item) => total + item.cost, 0);
     }
 
-    const taxAmount = () => {
+    const taxAmount = () => { // TODO: Should be amount not percent
         const taxValue = parseFloat(tax);
         if (isNaN(taxValue)) {
             return 0;
@@ -110,7 +116,7 @@ export default function CreateGroupPage() {
         return itemTotal() * (parseFloat(tax) / 100);
     }
 
-    const tipAmount = () => {
+    const tipAmount = () => { // TODO: Add a toggle to swap between amount or percent
         const tipValue = parseFloat(tax);
         if (isNaN(tipValue)) {
             return 0;

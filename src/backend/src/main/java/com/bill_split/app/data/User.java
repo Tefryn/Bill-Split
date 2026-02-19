@@ -31,11 +31,11 @@ public class User {
         this.email = email;
     }
     
-    public Long getTotal_cost() {
+    public Long getTotalCost() {
         return total_cost;
     }
     
-    public void setTotal_cost(Long total_cost) {
+    public void setTotalCost(Long total_cost) {
         this.total_cost = total_cost;
     }
 }
