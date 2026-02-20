@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 
 interface ItemProps {
     id: number;
@@ -10,18 +11,27 @@ interface ItemProps {
 
 interface ItemDisplayProps {
     item: ItemProps;
-    onClaim: () => void;
-    onUnclaim: () => void;
+    onClaim: () => Promise<boolean>;
+    onUnclaim: () => Promise<boolean>;
     isClaimed: boolean;
     disabled: boolean;
 }
 
 export function ItemDisplay({ item, onClaim, onUnclaim, isClaimed, disabled }: ItemDisplayProps) {
-    const handleClick = () => {
-        if (isClaimed) {
-            onUnclaim();
+    const [claimStatus, setClaimStatus] = useState(isClaimed);
+
+    const handleClick = async () => {
+        let oldStatus = claimStatus;
+        setClaimStatus(!claimStatus);
+        let success = false;
+        if (oldStatus) {
+            success = await onUnclaim();
         } else {
-            onClaim();
+            success = await onClaim();
+        }
+
+        if (!success) {            
+            setClaimStatus(oldStatus);
         }
     };
 
@@ -39,9 +49,9 @@ export function ItemDisplay({ item, onClaim, onUnclaim, isClaimed, disabled }: I
             <button
                 onClick={handleClick}
                 disabled={disabled}
-                className={`px-4 py-2 text-white rounded-md hover:bg-opacity-80 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px] ${isClaimed ? 'bg-red-500' : 'bg-green-500'}`}
+                className={`px-4 py-2 text-white rounded-md hover:bg-opacity-80 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px] ${claimStatus ? 'bg-red-500' : 'bg-green-500'}`}
             >
-                {isClaimed ? "Unclaim" : "Claim"}
+                {claimStatus ? "Unclaim" : "Claim"}
             </button>
         </div>
     );
