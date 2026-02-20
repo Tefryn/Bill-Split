@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@/components/molecules/UserContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/ItemDisplay";
 
@@ -32,7 +32,7 @@ export default function SessionView() {
     const [session, setSession] = useState<Session>();
     const [errMessage, setErrMessage] = useState<string>("");
     const API_URL = "http://localhost:8080";
-    const { email: userEmail, sessionId: id } = useUser();
+    const { email: userEmail, sessionId: sessionId } = useUser();
 
     console.log('result');
 
@@ -48,7 +48,7 @@ export default function SessionView() {
         return itemTotal() * ((session?.tip || 0) / 100);
     };
 
-    const fetchSession = async () => {
+    const fetchSession = useCallback(async () => {
         const query = `
             query FetchSession($sessionId: ID!) {
                 fetchSession(sessionId: $sessionId){
@@ -80,7 +80,7 @@ export default function SessionView() {
                 body: JSON.stringify({ 
                     query: query,
                     variables: { 
-                        sessionId: id
+                        sessionId: sessionId
                     }, 
                 }),
             });
@@ -92,25 +92,25 @@ export default function SessionView() {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.fetchSession) {
                 return result.data.fetchSession;
-                // Set user total?
             } else {
                 console.error("Error: Failed to fetch session.");
             }
         } catch (err) {
             console.error("Network error occurred.", err);
         }
-    }
+        setErrMessage("Failed to fetch Session.");
+    }, [sessionId]);
 
     useEffect(() => {
         const loadSession = async () => {
-            if (id) {
+            if (sessionId) {
                 setSession(await fetchSession());
             }
         };
         loadSession();
-    }, [id]);
+    }, [sessionId, fetchSession]);
     
-    const handleClaim = async (itemId: number, userEmail: string) => {
+    const handleClaim = async (itemId: number) => {
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
                 claimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
@@ -126,19 +126,17 @@ export default function SessionView() {
                 body: JSON.stringify({ 
                     query: mutation,
                     variables: { 
-                        sessionId: id,
+                        sessionId: sessionId,
                         itemId: itemId,
                         userEmail: userEmail
                     }, 
                 }),
             });
-
             const result = await response.json();
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
-                console.log(result.data.claimItem)
                 setUserTotal(result.data.claimItem);
                 return true;
             } else {
@@ -152,7 +150,7 @@ export default function SessionView() {
         return false;
     }
 
-    const handleUnclaim = async (itemId: number, userEmail: string) => {
+    const handleUnclaim = async (itemId: number) => {
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
                 unclaimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
@@ -168,7 +166,7 @@ export default function SessionView() {
                 body: JSON.stringify({ 
                     query: mutation,
                     variables: { 
-                        sessionId: id,
+                        sessionId: sessionId,
                         itemId: itemId,
                         userEmail: userEmail
                     }, 
@@ -238,7 +236,7 @@ export default function SessionView() {
     return (
     <main className="max-w-2xl mx-auto p-6">
       <Header 
-        title="Group View" 
+        title="Session View" 
         subtitle=""
         showBackButton 
         backHref="/" 
@@ -262,8 +260,8 @@ export default function SessionView() {
                     <ItemDisplay
                         key={item.id}
                         item={item}
-                        onClaim={() => handleClaim(item.id, userEmail)}
-                        onUnclaim={() => handleUnclaim(item.id, userEmail)}
+                        onClaim={() => handleClaim(item.id)}
+                        onUnclaim={() => handleUnclaim(item.id)}
                         isClaimed={item.claimedBy.includes(userEmail)}
                         disabled={!userEmail}
                     />
@@ -283,14 +281,14 @@ export default function SessionView() {
             <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
         </div>
 
-        <div>
+        {/* <div>
             <button 
                 onClick = {() => console.log(JSON.stringify(session))}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
             >
                 check session (debug)
             </button>
-        </div>
+        </div> */}
       </section>
     </main>
   );
