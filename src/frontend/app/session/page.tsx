@@ -108,7 +108,14 @@ export default function SessionView() {
     useEffect(() => {
         const loadSession = async () => {
             if (sessionId) {
-                setSession(await fetchSession());
+                const currentSession = await fetchSession();
+                setSession(currentSession);
+
+                const currentUser = currentSession?.users.find((user: UserProps) => user.email === userEmail);
+
+                if (currentUser) {
+                    setUserTotal(currentUser.total_cost);
+                }
             }
         };
         loadSession();
