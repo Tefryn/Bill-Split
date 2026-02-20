@@ -29,7 +29,6 @@ interface Session {
 }
 
 export default function SessionView() {
-    const [userTotal, setUserTotal] = useState<number>(0);
     const [session, setSession] = useState<Session>();
     const [errMessage, setErrMessage] = useState<string>("");
     const API_URL = "http://localhost:8080";
@@ -39,6 +38,15 @@ export default function SessionView() {
     const router = useRouter();
 
     console.log('result');
+
+    const currentUserTotal = () => {
+        return session?.items.reduce((acc, item) => {
+            if (item.claimedBy.includes(userEmail)) {
+                return acc + (item.cost / (item.shareable ? item.claimedBy.length : 1));
+            }
+            else return acc;
+        }, 0) || 0;
+    }
 
     const itemTotal = () => {
         return session?.items.reduce((acc, item) => acc + item.cost, 0) || 0;
@@ -110,12 +118,6 @@ export default function SessionView() {
             if (sessionId) {
                 const currentSession = await fetchSession();
                 setSession(currentSession);
-
-                const currentUser = currentSession?.users.find((user: UserProps) => user.email === userEmail);
-
-                if (currentUser) {
-                    setUserTotal(currentUser.total_cost);
-                }
             }
         };
         loadSession();
@@ -148,7 +150,7 @@ export default function SessionView() {
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
-                setUserTotal(result.data.claimItem);
+                setSession(await fetchSession());
                 return true;
             } else {
                 console.error("Error: Failed to claim item.");
@@ -191,7 +193,7 @@ export default function SessionView() {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
                 console.log(result.data.unclaimItem)
-                setUserTotal(result.data.unclaimItem);
+                setSession(await fetchSession());
                 return true;
             } else {
                 console.error("Error: Failed to unclaim item.");
@@ -264,7 +266,7 @@ export default function SessionView() {
 
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
-            <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${userTotal.toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${currentUserTotal().toFixed(2)}</h2>
         </div>
 
         <div>
@@ -305,14 +307,14 @@ export default function SessionView() {
             </button>
         </div>
 
-        {/* <div>
+        {/*<div>
             <button 
-                onClick = {() => console.log(JSON.stringify(session))}
+                onClick = {() => console.log(session?.items[0].claimedBy.length)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
             >
                 check session (debug)
             </button>
-        </div> */}
+        </div>*/}
       </section>
     </main>
   );
