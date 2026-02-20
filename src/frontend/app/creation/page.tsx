@@ -15,6 +15,7 @@ interface ItemProps {
 
 export default function CreateSessionPage() {
     const { setUser } = useUser();
+    const [errMessage, setErrMessage] = useState("");
     const [sessionName, setSessionName] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +90,8 @@ export default function CreateSessionPage() {
                 setUser(userEmail, result.data.createSession.id);
                 router.push(`/session`);
             } else {
-                console.error("Error: Failed to create session.");
+                setErrMessage("Failed to create session.");
+                setTimeout(() => setErrMessage(""), 3000);
             }
         } catch (err) {
             console.error("Network error occurred.", err);
@@ -226,6 +228,8 @@ export default function CreateSessionPage() {
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
         </div>
+
+        <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
 
         <button 
         onClick={handleCreation}
