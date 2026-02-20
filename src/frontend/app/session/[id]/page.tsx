@@ -200,11 +200,37 @@ export default function SessionView() {
         return (
             <main className="max-w-2xl mx-auto p-6">
                 <Header 
-                    title="Loading..." 
+                    title="Group View" 
                     subtitle=""
                     showBackButton 
                     backHref="/" 
                 />
+                <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Session ID: ...</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Welcome ...</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ...</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Items: ...</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Tax: ...</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Tip: ...</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Total: ...</h2>
+                </div>
+            </section>
             </main>
         );
     }
