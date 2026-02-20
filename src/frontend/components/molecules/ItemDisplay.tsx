@@ -21,7 +21,7 @@ export function ItemDisplay({ item, onClaim, onUnclaim, isClaimed, disabled }: I
     const [claimStatus, setClaimStatus] = useState(isClaimed);
 
     const handleClick = async () => {
-        let oldStatus = claimStatus;
+        const oldStatus = claimStatus;
         setClaimStatus(!claimStatus);
         let success = false;
 

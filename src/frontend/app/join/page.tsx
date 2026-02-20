@@ -6,12 +6,6 @@ import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { useUser } from "@/components/molecules/UserContext";
 
-interface ItemProps {
-    name: string;
-    cost: number;
-    shareable: boolean;
-}
-
 export default function CreateSessionPage() {
     const { setUser } = useUser();
     const [sessionId, setSessionId] = useState("");
