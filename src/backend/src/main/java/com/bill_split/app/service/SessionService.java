@@ -50,13 +50,11 @@ public class SessionService {
       User newUser = new User();
       newUser.setEmail(userEmail);
       
-      if (session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) {
-        return false;
+      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { // if user is not already in session
+        users.add(newUser);
+        session.setUsers(users);
+        sessionRepository.save(session);
       }
-
-      users.add(newUser);
-      session.setUsers(users);
-      sessionRepository.save(session);
       
       return true;
     }
