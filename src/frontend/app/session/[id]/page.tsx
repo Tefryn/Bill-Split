@@ -30,6 +30,7 @@ interface Session {
 export default function SessionView() {
     const [userTotal, setUserTotal] = useState<number>(0);
     const [session, setSession] = useState<Session>();
+    const [errMessage, setErrMessage] = useState<string>("");
     const API_URL = "http://localhost:8080";
     const { id } = useParams(); // make context?
     const userEmail  = "eiko.reisz@gmail.com" // Hardcoded: make context
@@ -146,6 +147,8 @@ export default function SessionView() {
         } catch (err) {
             console.error("Network error occurred.", err);
         }
+        setErrMessage("Failed to claim item. Please try again.");
+        setTimeout(() => setErrMessage(""), 3000)
         return false;
     }
 
@@ -187,6 +190,8 @@ export default function SessionView() {
         } catch (err) {
             console.error("Network error occurred.", err);
         }
+        setErrMessage("Failed to unclaim item. Please try again.");
+        setTimeout(() => setErrMessage(""), 3000)
         return false;
     }
 
@@ -225,6 +230,7 @@ export default function SessionView() {
 
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
             <ul className="space-y-2">
                 {session.items.map((item) => (
                     <ItemDisplay

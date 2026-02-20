@@ -24,10 +24,17 @@ export function ItemDisplay({ item, onClaim, onUnclaim, isClaimed, disabled }: I
         let oldStatus = claimStatus;
         setClaimStatus(!claimStatus);
         let success = false;
-        if (oldStatus) {
-            success = await onUnclaim();
-        } else {
-            success = await onClaim();
+
+        try {
+            if (oldStatus) {
+                success = await onUnclaim();
+            } else {
+                success = await onClaim();
+            }
+        }
+        catch (error) {
+            console.error("Error during claim/unclaim operation:", error);
+            success = false;
         }
 
         if (!success) {            
