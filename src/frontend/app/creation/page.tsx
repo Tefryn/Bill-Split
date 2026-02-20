@@ -87,7 +87,6 @@ export default function CreateSessionPage() {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.createSession) {
                 setUser(userEmail, result.data.createSession.id);
-                const sessionId = result.data.createSession.id;
                 router.push(`/session`);
             } else {
                 console.error("Error: Failed to create session.");

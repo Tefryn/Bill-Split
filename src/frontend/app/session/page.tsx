@@ -59,6 +59,7 @@ export default function SessionView() {
                         name
                         cost
                         claimedBy
+                        shareable
                     }
                     users {
                         email 
