@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@/components/molecules/UserContext";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/ItemDisplay";
@@ -32,7 +33,10 @@ export default function SessionView() {
     const [session, setSession] = useState<Session>();
     const [errMessage, setErrMessage] = useState<string>("");
     const API_URL = "http://localhost:8080";
+    const { setUser } = useUser();
     const { email: userEmail, sessionId: sessionId } = useUser();
+
+    const router = useRouter();
 
     console.log('result');
 
@@ -193,6 +197,10 @@ export default function SessionView() {
         return false;
     }
 
+    const handleLogOut = () => {
+        setUser("", "");
+        router.push(`/`);
+    }
 
     if (!session) {
         return (
@@ -279,6 +287,15 @@ export default function SessionView() {
 
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
+        </div>
+
+        <div>
+            <button 
+                onClick = {handleLogOut}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
+            >
+                Log Out
+            </button>
         </div>
 
         {/* <div>
