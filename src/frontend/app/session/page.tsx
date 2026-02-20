@@ -30,6 +30,7 @@ interface Session {
 export default function SessionView() {
     const [userTotal, setUserTotal] = useState<number>(0);
     const [session, setSession] = useState<Session>();
+    const [isLoading, setIsLoading] = useState<boolean>();
     const [errMessage, setErrMessage] = useState<string>("");
     const API_URL = "http://localhost:8080";
     const { email: userEmail, sessionId: sessionId } = useUser();
@@ -109,13 +110,22 @@ export default function SessionView() {
         loadSession();
     }, [sessionId, fetchSession]);
     
-    const handleClaim = async (itemId: number) => {
+    const handleClaim = async (item: Item) => {
+        console.log('claim');
+        if(isLoading) {
+            return false;
+        }
+
+        setIsLoading(true);
+        // optimistic ui
+        const oldUserTotal = userTotal
+        setUserTotal(oldUserTotal + item.cost);
+
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
                 claimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
             }
         `;
-
         try {
             const response = await fetch(`${API_URL}/graphql`, {
                 method: 'POST',
@@ -126,7 +136,7 @@ export default function SessionView() {
                     query: mutation,
                     variables: { 
                         sessionId: sessionId,
-                        itemId: itemId,
+                        itemId: item.id,
                         userEmail: userEmail
                     }, 
                 }),
@@ -137,6 +147,7 @@ export default function SessionView() {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
                 setUserTotal(result.data.claimItem);
+                setIsLoading(false);
                 return true;
             } else {
                 console.error("Error: Failed to claim item.");
@@ -146,16 +157,27 @@ export default function SessionView() {
         }
         setErrMessage("Failed to claim item. Please try again.");
         setTimeout(() => setErrMessage(""), 3000)
+        setUserTotal(oldUserTotal - item.cost); // revert ui
+        setIsLoading(false);
         return false;
     }
 
-    const handleUnclaim = async (itemId: number) => {
+    const handleUnclaim = async (item: Item) => {
+        console.log('unclaim');
+        if(isLoading) {
+            return false; 
+        }
+
+        setIsLoading(true);
+        // optimistic ui
+        const oldUserTotal = userTotal
+        setUserTotal(oldUserTotal - item.cost);
+
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
                 unclaimItem(sessionId: $sessionId, itemId: $itemId, userEmail: $userEmail)
             }
         `;
-
         try {
             const response = await fetch(`${API_URL}/graphql`, {
                 method: 'POST',
@@ -166,7 +188,7 @@ export default function SessionView() {
                     query: mutation,
                     variables: { 
                         sessionId: sessionId,
-                        itemId: itemId,
+                        itemId: item.id,
                         userEmail: userEmail
                     }, 
                 }),
@@ -180,6 +202,7 @@ export default function SessionView() {
             } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
                 console.log(result.data.unclaimItem)
                 setUserTotal(result.data.unclaimItem);
+                setIsLoading(false);
                 return true;
             } else {
                 console.error("Error: Failed to unclaim item.");
@@ -189,6 +212,8 @@ export default function SessionView() {
         }
         setErrMessage("Failed to unclaim item. Please try again.");
         setTimeout(() => setErrMessage(""), 3000)
+        setUserTotal(oldUserTotal); // revert ui
+        setIsLoading(false);
         return false;
     }
 
@@ -259,10 +284,10 @@ export default function SessionView() {
                     <ItemDisplay
                         key={item.id}
                         item={item}
-                        onClaim={() => handleClaim(item.id)}
-                        onUnclaim={() => handleUnclaim(item.id)}
+                        onClaim={() => handleClaim(item)}
+                        onUnclaim={() => handleUnclaim(item)}
                         isClaimed={item.claimedBy.includes(userEmail)}
-                        disabled={!userEmail}
+                        disabled={!item.shareable && item.claimedBy.length > 0 && !item.claimedBy.includes(userEmail)}
                     />
                 ))}
             </ul>
