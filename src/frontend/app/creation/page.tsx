@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/item-entry";
+import { useUser } from "@/components/molecules/UserContext";
 
 interface ItemProps {
     name: string;
@@ -13,6 +14,7 @@ interface ItemProps {
 }
 
 export default function CreateSessionPage() {
+    const { setUser } = useUser();
     const [sessionName, setSessionName] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -84,8 +86,9 @@ export default function CreateSessionPage() {
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.createSession) {
+                setUser(userEmail, result.data.createSession.id);
                 const sessionId = result.data.createSession.id;
-                router.push(`/session/${sessionId}`);
+                router.push(`/session`);
             } else {
                 console.error("Error: Failed to create session.");
             }

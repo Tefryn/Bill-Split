@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from 'next/navigation'
+import { useUser } from "@/components/molecules/UserContext";
 import { useState, useEffect } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/ItemDisplay";
@@ -32,8 +32,7 @@ export default function SessionView() {
     const [session, setSession] = useState<Session>();
     const [errMessage, setErrMessage] = useState<string>("");
     const API_URL = "http://localhost:8080";
-    const { id } = useParams(); // make context?
-    const userEmail  = "eiko.reisz@gmail.com" // Hardcoded: make context
+    const { email: userEmail, sessionId: id } = useUser();
 
     console.log('result');
 
