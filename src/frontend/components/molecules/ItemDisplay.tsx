@@ -45,7 +45,7 @@ export function ItemDisplay({ item, onClaim, onUnclaim, isClaimed, disabled }: I
     return (
         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
             <div>
-                <p className="font-semibold">{item.name}</p>
+                <p className="font-semibold text-black">{item.name}</p>
                 <p className="text-sm text-gray-600">${item.cost.toFixed(2)} - {item.shareable ? "Shareable" : "Not Shareable"}</p>
                 {item.claimedBy.length > 0 && (
                     <p className="text-xs text-gray-500">

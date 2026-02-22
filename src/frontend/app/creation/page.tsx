@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
-import { ItemEntry } from "@/components/molecules/item-entry";
-import { useUser } from "@/components/molecules/UserContext";
+import { ItemEntry } from "@/components/molecules/itemEntry";
+import { useUser } from "@/components/molecules/userContext";
 
 interface ItemProps {
     name: string;

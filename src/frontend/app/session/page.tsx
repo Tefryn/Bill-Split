@@ -1,10 +1,10 @@
 "use client";
 
-import { useUser } from "@/components/molecules/UserContext";
+import { useUser } from "@/components/molecules/userContext";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
-import { ItemDisplay } from "@/components/molecules/ItemDisplay";
+import { ItemDisplay } from "@/components/molecules/itemDisplay";
 
 interface Item {
     id: number;
@@ -120,7 +120,7 @@ export default function SessionView() {
             }
         };
         loadSession();
-    }, [sessionId, fetchSession]);
+    }, [sessionId, fetchSession, userEmail]);
     
     const handleClaim = async (item: Item) => {
         console.log('claim');
@@ -169,7 +169,7 @@ export default function SessionView() {
         }
         setErrMessage("Failed to claim item. Please try again.");
         setTimeout(() => setErrMessage(""), 3000)
-        setUserTotal(oldUserTotal - item.cost); // revert ui
+        setUserTotal(oldUserTotal); // revert ui
         setIsLoading(false);
         return false;
     }

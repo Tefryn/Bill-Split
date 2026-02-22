@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
-import { useUser } from "@/components/molecules/UserContext";
+import { useUser } from "@/components/molecules/userContext";
 
 export default function CreateSessionPage() {
     const { setUser } = useUser();
