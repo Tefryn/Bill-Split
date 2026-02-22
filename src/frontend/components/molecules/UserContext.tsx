@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface UserContextType {
     email: string;
@@ -10,8 +10,24 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-    const [email, setEmail] = useState("");
-    const [sessionId, setSessionId] = useState("");
+    const [email, setEmail] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("userEmail") || "";
+        }
+        return "";
+    });
+
+    const [sessionId, setSessionId] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("sessionId") || "";
+        }
+        return "";
+    });
+
+    useEffect(() => {
+      localStorage.setItem("userEmail", email);
+      localStorage.setItem("sessionId", sessionId);
+    }, [email, sessionId]);
 
     const setUser = (email: string, sessionId: string) => {
         setEmail(email);

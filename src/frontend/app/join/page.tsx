@@ -11,6 +11,7 @@ export default function CreateSessionPage() {
     const [sessionId, setSessionId] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [errMessage, setErrMessage] = useState("");
     const API_URL = "http://localhost:8080";
 
     const router = useRouter();
@@ -51,7 +52,8 @@ export default function CreateSessionPage() {
                 setUser(userEmail, sessionId);
                 router.push(`/session`);
             } else {
-                console.error("Error: Failed to join session.");
+                setErrMessage("Failed to join session.");
+                setTimeout(() => setErrMessage(""), 3000);
             }
         } catch (err) {
             console.error("Network error occurred.", err);
@@ -97,6 +99,7 @@ export default function CreateSessionPage() {
             />
         </div>
 
+        <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
 
         <hr className="border-t border-gray-900 my-8" />
 

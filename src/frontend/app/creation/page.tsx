@@ -15,11 +15,13 @@ interface ItemProps {
 
 export default function CreateSessionPage() {
     const { setUser } = useUser();
+    const [errMessage, setErrMessage] = useState("");
     const [sessionName, setSessionName] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
+    const [isPercent, setIsPercent] = useState(false);
     const [items, setItems] = useState<ItemProps[]>([]);
     const API_URL = "http://localhost:8080";
 
@@ -89,7 +91,8 @@ export default function CreateSessionPage() {
                 setUser(userEmail, result.data.createSession.id);
                 router.push(`/session`);
             } else {
-                console.error("Error: Failed to create session.");
+                setErrMessage("Failed to create session.");
+                setTimeout(() => setErrMessage(""), 3000);
             }
         } catch (err) {
             console.error("Network error occurred.", err);
@@ -112,13 +115,16 @@ export default function CreateSessionPage() {
         if (isNaN(taxValue)) {
             return 0;
         }
-        return itemTotal() * (parseFloat(tax) / 100);
+        return taxValue;
     }
 
     const tipAmount = () => { // TODO: Add a toggle to swap between amount or percent
-        const tipValue = parseFloat(tax);
+        const tipValue = parseFloat(tip);
         if (isNaN(tipValue)) {
             return 0;
+        }
+        if (!isPercent) {
+            return tipValue;
         }
         return itemTotal() * (parseFloat(tip) / 100);
     }
@@ -153,6 +159,18 @@ export default function CreateSessionPage() {
             <ItemEntry addItem={addItem}></ItemEntry>
         </div>
 
+        {/* Item Display */}
+        <div>
+            <ul className="space-y-2">
+                {items.map((item, index) => (
+                    <li key={index} className="flex justify-between text-black items-center bg-black-50 p-3 rounded-md border">
+                        <span>{item.name} - {item.cost.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{item.shareable ? "Shared" : "Not Shared"}</span>
+                    </li>
+                ))}
+            </ul>
+        </div>
+
         {/* Email Entry */}
         <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">
@@ -166,30 +184,43 @@ export default function CreateSessionPage() {
             />
         </div>
 
-        { /* Tax Entry */ }
-        <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
-            Tax
-          </label>
-          <Input 
-            type='number'
-            value={tax} 
-            onChange={setTax} 
-            placeholder="in percentage, e.g. 10 or 20"
-          />
-        </div>
-
-        { /* Tip Entry */ }
-        <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
-            Tip
-          </label>
-          <Input 
-            type="number"
-            value={tip} 
-            onChange={setTip} 
-            placeholder="in percentage, e.g. 10 or 20"
-          />
+        <div className = "flex gap-4">
+            { /* Tax Entry */ }
+            <div className ="flex-3">
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Tax
+                </label>
+                <Input 
+                    type='number'
+                    value={tax} 
+                    onChange={setTax} 
+                    placeholder="in $"
+                />
+            </div>
+            { /* Tip Entry */ }
+            <div className="flex-3">
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Tip
+                </label>
+                <Input 
+                    type="number"
+                    value={tip} 
+                    onChange={setTip} 
+                    placeholder="in $ or %"
+                />
+            </div>
+            { /* Tip Entry */ }
+            <div className="flex-2">
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Tip in $ or %?
+                </label>
+                <button
+                    onClick={() => setIsPercent(!isPercent)}
+                    className={`w-full py-2 rounded-md transition-colors ${isPercent ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                    >
+                    {isPercent ? "Percentage" : "Dollar Amount"}
+                </button>
+            </div>
         </div>
 
         <hr className="border-t border-gray-900 my-8" />
@@ -201,14 +232,6 @@ export default function CreateSessionPage() {
 
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
-            <ul className="space-y-2">
-                {items.map((item, index) => (
-                    <li key={index} className="flex justify-between text-black items-center bg-black-50 p-3 rounded-md border">
-                        <span>{item.name} - {item.cost.toFixed(2)}</span>
-                        <span className="text-sm font-medium">{item.shareable ? "Shared" : "Not Shared"}</span>
-                    </li>
-                ))}
-            </ul>
         </div>
 
         <div>
@@ -216,16 +239,18 @@ export default function CreateSessionPage() {
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tax: {tax}% - ${taxAmount().toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Tax: ${taxAmount().toFixed(2)}</h2>
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tip: {tip}% - ${tipAmount().toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Tip: ${tipAmount().toFixed(2)}</h2>
         </div>
 
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
         </div>
+
+        <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
 
         <button 
         onClick={handleCreation}
