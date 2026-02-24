@@ -111,10 +111,10 @@ public class SessionService {
         return -1L;
       }
 
+      user.setTotalCost(user.getTotalCost() - item.getCost());
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() - item.getCost());
       sessionRepository.save(session);
 
       return user.getTotalCost();

@@ -44,7 +44,8 @@ public class Item {
   }
 
   public Long getCost() {
-    return cost;
+    int split = claimedBy.size() > 0 ? claimedBy.size() : 1;
+    return cost / split;
   }
 
   public void setCost(Long cost) {

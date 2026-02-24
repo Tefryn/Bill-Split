@@ -131,7 +131,8 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal + item.cost);
+        const splitCost = item.shareable && item.claimedBy.length > 0 ? item.cost / (item.claimedBy.length + 1) : item.cost;
+        setUserTotal(oldUserTotal + splitCost);
 
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -183,7 +184,8 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal - item.cost);
+        const splitCost = item.shareable && item.claimedBy.length > 0 ? item.cost / (item.claimedBy.length + 1) : item.cost;
+        setUserTotal(oldUserTotal - splitCost);
 
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
