@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @Service
 public class SessionService {
-  // private static final String NOTE_SUMMARY_EVENT_QUEUE = "note_summary_event_queue";
+  private static final String NOTE_SUMMARY_EVENT_QUEUE = "note_summary_event_queue";
 
   private final SessionRepository sessionRepository;
   private final StringRedisTemplate redis;
@@ -55,6 +55,8 @@ public class SessionService {
         session.setUsers(users);
         sessionRepository.save(session);
       }
+
+      checkBillFinalizable(sessionId);
       
       return true;
     }
@@ -88,6 +90,7 @@ public class SessionService {
       sessionRepository.save(session);
       System.out.println("Claimed by list: " + item.getClaimedBy());
 
+      checkBillFinalizable(sessionId);
       return user.getTotalCost();
     }
     System.out.println("Session not found with id: " + sessionId);
@@ -117,9 +120,27 @@ public class SessionService {
       user.setTotalCost(user.getTotalCost() - item.getCost());
       sessionRepository.save(session);
 
+      checkBillFinalizable(sessionId);
       return user.getTotalCost();
     }
     return -1L;
   }
 
+  private void checkBillFinalizable(Long sessionId) {
+    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+    if (optionalSession.isPresent()) {
+      Session session = optionalSession.get();
+      List<User> users = session.getUsers();
+      BigDecimal expectedCost = session.getItems().stream().mapToBigDecimal(Item::getCost).sum();
+      BigDecimal totalCost = users.stream().mapToBigDecimal(User::getTotalCost).getTotalCost().sum();
+      Bool deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost() == 0);
+
+      String destination = "/topic/session/" + Long.toString(sessionId);
+      String payload = "Finalize::" + (!deadWeightUser && totalCost >= expectedCost);
+
+      socket.convertAndSend(destination, payload);
+      System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
+    }
+  }
 }
+

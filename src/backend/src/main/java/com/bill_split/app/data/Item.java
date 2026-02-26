@@ -1,6 +1,8 @@
 package com.bill_split.app.data;
 
 import jakarta.persistence.*;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
@@ -12,7 +14,7 @@ public class Item {
 
   private String name;
 
-  private Long cost;
+  private BigDecimal cost;
 
   @ElementCollection
   private List<String> claimedBy;
@@ -43,11 +45,11 @@ public class Item {
     this.name = name;
   }
 
-  public Long getCost() {
+  public BigDecimal getCost() {
     return cost;
   }
 
-  public void setCost(Long cost) {
+  public void setCost(BigDecimal cost) {
     this.cost = cost;
   }
 
