@@ -33,8 +33,7 @@ export default function SessionView() {
     const [session, setSession] = useState<Session>();
     const [isLoading, setIsLoading] = useState<boolean>();
     const [errMessage, setErrMessage] = useState<string>("");
-    const API_URL = "http://localhost:8080";
-    const { setUser } = useUser();
+    const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
     const { email: userEmail, sessionId: sessionId } = useUser();
 
     const router = useRouter();
