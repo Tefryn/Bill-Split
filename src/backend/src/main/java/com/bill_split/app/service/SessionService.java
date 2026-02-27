@@ -63,7 +63,7 @@ public class SessionService {
     return false; // Or throw an exception
   }
 
-  public Long claimItem(Long sessionId, Long itemId, String userEmail) {
+  public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
     System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
@@ -74,13 +74,13 @@ public class SessionService {
 
       System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return -1L;
+        return false;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
       if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
-        return -1L;
+        return false;
       }
 
       List<String> claimedBy = item.getClaimedBy();
@@ -94,10 +94,10 @@ public class SessionService {
       return user.getTotalCost();
     }
     System.out.println("Session not found with id: " + sessionId);
-    return -1L;
+    return false;
   }
 
-    public Long unclaimItem(Long sessionId, Long itemId, String userEmail) {
+    public Boolean unclaimItem(Long sessionId, Long itemId, String userEmail) {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
@@ -105,13 +105,13 @@ public class SessionService {
       Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return -1L;
+        return false;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
       if (!item.getClaimedBy().contains(userEmail)) {
-        return -1L;
+        return false;
       }
 
       List<String> claimedBy = item.getClaimedBy();
@@ -123,7 +123,7 @@ public class SessionService {
       checkBillFinalizable(sessionId);
       return user.getTotalCost();
     }
-    return -1L;
+    return false;
   }
 
   private void checkBillFinalizable(Long sessionId) {
@@ -136,11 +136,19 @@ public class SessionService {
       Bool deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost() == 0);
 
       String destination = "/topic/session/" + Long.toString(sessionId);
-      String payload = "Finalize::" + (!deadWeightUser && totalCost >= expectedCost);
+      String payload = "Bill can be closed out::" + (!deadWeightUser && totalCost >= expectedCost);
 
       socket.convertAndSend(destination, payload);
       System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
     }
+  }
+
+  private void Finalize(Long sessionId) {
+    String destination = "/topic/session/" + Long.toString(sessionId);
+    String payload = "Bill status::Finished";
+
+    socket.convertAndSend(destination, payload);
+    System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
   }
 }
 

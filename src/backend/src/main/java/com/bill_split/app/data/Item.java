@@ -24,7 +24,7 @@ public class Item {
   public Item() {
   }
 
-  public Item(String name, Long cost) {
+  public Item(String name, BigDecimal cost) {
     this.name = name;
     this.cost = cost;
   }

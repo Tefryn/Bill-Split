@@ -5,18 +5,19 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/itemDisplay";
+import FinalizeButton from "@/components/molecules/finalizeButton";
 
 interface Item {
     id: number;
     name: string;
-    cost: number;
+    cost: string;
     shareable: boolean;
     claimedBy: string[];
 }
 
 interface UserProps {
     email: string;
-    total_cost: number;
+    total_cost: string;
 }
 
 interface Session {
@@ -42,7 +43,7 @@ export default function SessionView() {
     console.log('result');
 
     const itemTotal = () => {
-        return session?.items.reduce((acc, item) => acc + item.cost, 0) || 0;
+        return session?.items.reduce((acc: number, item: Item) => acc + parseFloat(item.cost), 0) || 0;
     };
 
     const taxAmount = () => {
@@ -131,7 +132,7 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal + item.cost);
+        setUserTotal(oldUserTotal + parseFloat(item.cost));
 
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -156,13 +157,12 @@ export default function SessionView() {
             const result = await response.json();
 
             if (result.errors) {
-                console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
-                setUserTotal(result.data.claimItem);
+                console.error(`GraphQL Error: ${result.errors[0].message}`)
+            } else if (result.data?.claimItem == null) {
+                console.error("Error: Failed to claim item.");
+            } else {
                 setIsLoading(false);
                 return true;
-            } else {
-                console.error("Error: Failed to claim item.");
             }
         } catch (err) {
             console.error("Network error occurred.", err);
@@ -183,7 +183,7 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal - item.cost);
+        setUserTotal(oldUserTotal - parseFloat(item.cost));
 
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -211,13 +211,11 @@ export default function SessionView() {
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
-                console.log(result.data.unclaimItem)
-                setUserTotal(result.data.unclaimItem);
+            } else if (result.data?.claimItem == null) {
+                console.error("Error: Failed to claim item.");
+            } else {
                 setIsLoading(false);
                 return true;
-            } else {
-                console.error("Error: Failed to unclaim item.");
             }
         } catch (err) {
             console.error("Network error occurred.", err);
@@ -328,6 +326,10 @@ export default function SessionView() {
             >
                 Log Out
             </button>
+        </div>
+
+        <div>
+            <FinalizeButton />
         </div>
 
         {/* <div>
