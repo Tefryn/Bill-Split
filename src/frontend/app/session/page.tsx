@@ -248,7 +248,7 @@ export default function SessionView() {
         return (
             <main className="max-w-2xl mx-auto p-6">
                 <Header 
-                    title="Group View" 
+                    title="Session View" 
                     subtitle=""
                     showBackButton 
                     backHref="/" 

@@ -58,6 +58,9 @@ public class SessionCostWorker {
 
     private void recalculateCosts(String event) {
         System.out.println("SessionCostWorker.java: Recalculating costs for event: " + event);
+        // event format: sessionId::itemId::userEmail::action
+        // this assumes the action has been applied to the user, only updates other users
+
         String[] parts = event.split("::");
         Long sessionId = Long.parseLong(parts[0]);
         Long itemId = Long.parseLong(parts[1]);
@@ -75,13 +78,16 @@ public class SessionCostWorker {
             List<String> claimedBy = item.getClaimedBy();
             if (action.equals("claim")) {
                 for (String email : claimedBy) {
+                    if (email.equals(userEmail)) {
+                        continue;
+                    }
                     Optional<User> optionalOtherUser = users.stream().filter(n -> n.getEmail().equals(email)).findFirst();
                     User claimedUser = optionalOtherUser.get();
                     Long itemTotalCost = item.getTotalCost();
-                    Long costUpdate = (itemTotalCost / (claimedBy.size() + 1)) - (itemTotalCost / claimedBy.size());
+                    Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()-1));
                     claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
                 }
-            } 
+            }
             else if (action.equals("unclaim")) {
                 for (String email : claimedBy) {
                     if (email.equals(userEmail)) {
@@ -91,8 +97,8 @@ public class SessionCostWorker {
                     User claimedUser = optionalOtherUser.get();
                     Long itemTotalCost = item.getTotalCost();
                     System.out.println(claimedBy.size());
-                    Long costUpdate = (itemTotalCost / (claimedBy.size() - 1)) - (itemTotalCost / claimedBy.size());
-                    claimedUser.setTotalCost(claimedUser.getTotalCost() - costUpdate);
+                    Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()+1));
+                    claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
                 }
             }
             userRepository.saveAll(users);

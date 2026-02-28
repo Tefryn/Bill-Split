@@ -6,6 +6,8 @@ import com.bill_split.app.graphql.SessionInput;
 import com.bill_split.app.data.Item;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
+import com.bill_split.app.data.UserRepository;
+import com.bill_split.app.data.ItemRepository;
 import java.util.Arrays;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -19,10 +21,14 @@ public class SessionService {
 
   private final SessionRepository sessionRepository;
   private final StringRedisTemplate redis;
+  private final UserRepository userRepository;
+  private final ItemRepository itemRepository;
 
-  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis) {
+  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis, UserRepository userRepository, ItemRepository itemRepository) {
     this.sessionRepository = sessionRepository;
     this.redis = redis;
+    this.userRepository = userRepository;
+    this.itemRepository = itemRepository;
   }
 
   public Optional<Session> getSessionById(Long sessionId) {
@@ -83,22 +89,15 @@ public class SessionService {
 
       List<String> claimedBy = item.getClaimedBy();
 
-      // put in redis job to update backend costs for everyone here
-      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::claim");
-
-      /*
-      for (String email : claimedBy) {
-        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
-        User claimedUser = optionalOtherUser.get();
-        Long itemTotalCost = item.getTotalCost();
-        Long costUpdate = (itemTotalCost / (claimedBy.size() + 1)) - (itemTotalCost / claimedBy.size());
-        claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
-      }
-      */
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
       user.setTotalCost(user.getTotalCost() + item.getCost());
+      itemRepository.save(item);
+      userRepository.save(user);
       sessionRepository.save(session);
+
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::claim");
 
       return user.getTotalCost();
     }
@@ -125,25 +124,14 @@ public class SessionService {
 
       user.setTotalCost(user.getTotalCost() - item.getCost());
       List<String> claimedBy = item.getClaimedBy();
-
-      // put in redis job to update backend costs for everyone here
-      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::unclaim");
-
-      /*
-      for (String email : claimedBy) {
-        if (email.equals(userEmail)) {
-          continue;
-        }
-        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
-        User claimedUser = optionalOtherUser.get();
-        Long itemTotalCost = item.getTotalCost();
-        Long costUpdate = (itemTotalCost / (claimedBy.size() - 1)) - (itemTotalCost / claimedBy.size());
-        claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
-      }
-      */
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
+      itemRepository.save(item);
+      userRepository.save(user);
       sessionRepository.save(session);
+
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::unclaim");
 
       return user.getTotalCost();
     }
