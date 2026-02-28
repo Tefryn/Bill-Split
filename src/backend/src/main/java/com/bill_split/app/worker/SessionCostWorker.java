@@ -52,5 +52,40 @@ public class SessionCostWorker {
 
     private void recalculateCosts(String event) {
         System.out.println("SessionCostWorker.java: Recalculating costs for event: " + event);
+        String[] parts = event.split("::");
+        Long sessionId = Long.parseLong(parts[0]);
+        Long itemId = Long.parseLong(parts[1]);
+        String userEmail = parts[2];
+        String action = parts[3];
+
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            Item item = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst().get();
+
+            List<String> claimedBy = item.getClaimedBy();
+            if (action.equals("claim")) {
+                for (String email : claimedBy) {
+                    Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+                    User claimedUser = optionalOtherUser.get();
+                    Long itemTotalCost = item.getTotalCost();
+                    Long costUpdate = (itemTotalCost / (claimedBy.size() + 1)) - (itemTotalCost / claimedBy.size());
+                    claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+                }
+            } 
+            else if (action.equals("unclaim")) {
+                for (String email : claimedBy) {
+                    if (email.equals(userEmail)) {
+                        continue;
+                    }
+                    Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+                    User claimedUser = optionalOtherUser.get();
+                    Long itemTotalCost = item.getTotalCost();
+                    Long costUpdate = (itemTotalCost / (claimedBy.size() - 1)) - (itemTotalCost / claimedBy.size());
+                    claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+                }
+            }
+            sessionRepository.save(session);
+        }
     }
 }
