@@ -131,8 +131,12 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        const splitCost = item.shareable && item.claimedBy.length > 0 ? item.cost / (item.claimedBy.length + 1) : item.cost;
-        setUserTotal(oldUserTotal + splitCost);
+        // if the user's already in the claimedBy list, then item.cost is accurate
+        // otherwise, undo split and resplit with one extra person
+        const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
+                                item.cost : 
+                                (item.cost * item.claimedBy.length) / (item.claimedBy.length + 1);
+        setUserTotal(oldUserTotal + costUpdate);
 
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -184,8 +188,12 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        const splitCost = item.shareable && item.claimedBy.length > 0 ? item.cost / (item.claimedBy.length + 1) : item.cost;
-        setUserTotal(oldUserTotal - splitCost);
+        // if the user's already in the claimedBy list, then item.cost is accurate
+        // otherwise, undo split and resplit with one extra person
+        const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
+                                item.cost : 
+                                (item.cost * item.claimedBy.length) / (item.claimedBy.length + 1);
+        setUserTotal(oldUserTotal - costUpdate);
 
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
