@@ -84,6 +84,8 @@ public class SessionService {
       List<String> claimedBy = item.getClaimedBy();
 
       // put in redis job to update backend costs for everyone here
+      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::claim");
+
       for (String email : claimedBy) {
         Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
         User claimedUser = optionalOtherUser.get();
@@ -124,6 +126,8 @@ public class SessionService {
       List<String> claimedBy = item.getClaimedBy();
 
       // put in redis job to update backend costs for everyone here
+      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::unclaim");
+
       for (String email : claimedBy) {
         Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
         User claimedUser = optionalOtherUser.get();
