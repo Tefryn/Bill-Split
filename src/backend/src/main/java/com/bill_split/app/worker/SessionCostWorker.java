@@ -3,7 +3,9 @@ package com.bill_split.app.worker;
 import com.bill_split.app.data.Session;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
+import com.bill_split.app.data.UserRepository;
 import com.bill_split.app.data.Item;
+import com.bill_split.app.data.ItemRepository;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -17,11 +19,15 @@ import java.util.Optional;
 public class SessionCostWorker {
 
     private final SessionRepository sessionRepository;
+    private final UserRepository userRepository;
+    private final ItemRepository itemRepository;
     private final StringRedisTemplate redis;
 
-    public SessionCostWorker(SessionRepository sessionRepository, StringRedisTemplate redis) {
+    public SessionCostWorker(SessionRepository sessionRepository, StringRedisTemplate redis, UserRepository userRepository, ItemRepository itemRepository) {
         this.sessionRepository = sessionRepository;
         this.redis = redis;
+        this.userRepository = userRepository;
+        this.itemRepository = itemRepository;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -59,14 +65,17 @@ public class SessionCostWorker {
         String action = parts[3];
 
         Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        List<Item> items = itemRepository.findBySessionId(sessionId);
+        List<User> users = userRepository.findBySessionId(sessionId);
+
         if (optionalSession.isPresent()) {
             Session session = optionalSession.get();
-            Item item = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst().get();
+            Item item = items.stream().filter(n -> n.getId().equals(itemId)).findFirst().get();
 
             List<String> claimedBy = item.getClaimedBy();
             if (action.equals("claim")) {
                 for (String email : claimedBy) {
-                    Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+                    Optional<User> optionalOtherUser = users.stream().filter(n -> n.getEmail().equals(email)).findFirst();
                     User claimedUser = optionalOtherUser.get();
                     Long itemTotalCost = item.getTotalCost();
                     Long costUpdate = (itemTotalCost / (claimedBy.size() + 1)) - (itemTotalCost / claimedBy.size());
@@ -78,14 +87,15 @@ public class SessionCostWorker {
                     if (email.equals(userEmail)) {
                         continue;
                     }
-                    Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+                    Optional<User> optionalOtherUser = users.stream().filter(n -> n.getEmail().equals(email)).findFirst();
                     User claimedUser = optionalOtherUser.get();
                     Long itemTotalCost = item.getTotalCost();
+                    System.out.println(claimedBy.size());
                     Long costUpdate = (itemTotalCost / (claimedBy.size() - 1)) - (itemTotalCost / claimedBy.size());
-                    claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+                    claimedUser.setTotalCost(claimedUser.getTotalCost() - costUpdate);
                 }
             }
-            sessionRepository.save(session);
+            userRepository.saveAll(users);
         }
     }
 }

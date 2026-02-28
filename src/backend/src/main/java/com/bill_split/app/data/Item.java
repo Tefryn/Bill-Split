@@ -14,7 +14,8 @@ public class Item {
 
   private Long cost;
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER) // Add this!
+  @CollectionTable(name = "item_claimed_by", joinColumns = @JoinColumn(name = "item_id"))
   private List<String> claimedBy;
 
   private Boolean shareable = false;
