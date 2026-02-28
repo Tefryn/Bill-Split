@@ -82,11 +82,20 @@ public class SessionService {
       }
 
       List<String> claimedBy = item.getClaimedBy();
+
+      // put in redis job to update backend costs for everyone here
+      for (String email : claimedBy) {
+        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+        User claimedUser = optionalOtherUser.get();
+        Long itemTotalCost = item.getTotalCost();
+        Long costUpdate = (itemTotalCost / (claimedBy.size() + 1)) - (itemTotalCost / claimedBy.size());
+        claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+      }
+
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
       user.setTotalCost(user.getTotalCost() + item.getCost());
       sessionRepository.save(session);
-      System.out.println("Claimed by list: " + item.getClaimedBy());
 
       return user.getTotalCost();
     }
@@ -113,6 +122,16 @@ public class SessionService {
 
       user.setTotalCost(user.getTotalCost() - item.getCost());
       List<String> claimedBy = item.getClaimedBy();
+
+      // put in redis job to update backend costs for everyone here
+      for (String email : claimedBy) {
+        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+        User claimedUser = optionalOtherUser.get();
+        Long itemTotalCost = item.getTotalCost();
+        Long costUpdate = (itemTotalCost / (claimedBy.size() - 1)) - (itemTotalCost / claimedBy.size());
+        claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+      }
+
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
       sessionRepository.save(session);

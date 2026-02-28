@@ -48,6 +48,10 @@ public class Item {
     return cost / split;
   }
 
+  public Long getTotalCost() {
+    return cost;
+  }
+
   public void setCost(Long cost) {
     this.cost = cost;
   }
