@@ -14,7 +14,7 @@ public class Item {
 
   private Long cost;
 
-  @ElementCollection(fetch = FetchType.EAGER) // Add this!
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "item_claimed_by", joinColumns = @JoinColumn(name = "item_id"))
   private List<String> claimedBy;
 
