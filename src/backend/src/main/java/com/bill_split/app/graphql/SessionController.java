@@ -44,4 +44,9 @@ public class SessionController {
     public Boolean claimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
         return sessionService.claimItem(sessionId, itemId, userEmail);
     }
+
+    @MutationMapping
+    public Boolean finalizeSession(@Argument Long sessionId) {
+        return sessionService.finalizeSession(sessionId);
+    }
 }

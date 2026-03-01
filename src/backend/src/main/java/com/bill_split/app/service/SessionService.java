@@ -145,7 +145,7 @@ public class SessionService {
     }
   }
 
-  private void Finalize(Long sessionId) {
+  private void finalizeSession(Long sessionId) {
     String destination = "/topic/session/" + Long.toString(sessionId);
     String payload = "Bill status::Finished";
 
