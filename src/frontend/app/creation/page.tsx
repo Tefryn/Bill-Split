@@ -32,7 +32,7 @@ export default function CreateSessionPage() {
             return
         }
         e.preventDefault();
-
+        
         const mutation = `
             mutation CreateSession($input: CreateSessionInput!) {
                 createSession(input: $input) {
@@ -83,7 +83,6 @@ export default function CreateSessionPage() {
             });
             
             const result = await response.json();
-            console.log(result)
             
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);

@@ -9,18 +9,23 @@ export default function FinalizeButton() {
     const { sessionId: sessionId } = useUser();
     const [isFinalizable, setIsFinalizable] = useState<boolean>(false);
 
-    useEffect(() => {
+    useEffect(() => {        
         const stompClient = new Client({
             brokerURL: WEBSOCKET_URL, // WebSocket endpoint URL
             onConnect: (frame) => {
-                console.log('Connected: ' + frame);
+                console.log('WebSocket connected!', frame);
                 stompClient.subscribe('/topic/session/' + sessionId, (message) => {
                     console.log("Received: " + message.body);
-                    const parts = message.body.split(":", 2);
-                    if (parts[1] === "finish") {
-                        // Route to final itemized page
+
+                    const body = message.body;
+                    const [msg, status] = body.split('::');
+                    if (status === "finish") {
+                        // TODO: Route to final itemized page
+                    } else if (status === "Closeable") {
+                        setIsFinalizable(true);
+                    } else {
+                        setIsFinalizable(false);
                     }
-                    setIsFinalizable(parts[1] === 'true');
                 });
             },
             onStompError: (frame) => {
@@ -38,7 +43,7 @@ export default function FinalizeButton() {
     }, [sessionId]); 
 
     const handleFinalize = () => {
-        // GraphQL call thing a ma bob
+        // TODO: GraphQL call to finalize bill and inform other users
     };
 
     return (

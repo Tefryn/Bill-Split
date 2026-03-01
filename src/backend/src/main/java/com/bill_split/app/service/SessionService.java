@@ -136,7 +136,9 @@ public class SessionService {
       Bool deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost() == 0);
 
       String destination = "/topic/session/" + Long.toString(sessionId);
-      String payload = "Bill can be closed out::" + (!deadWeightUser && totalCost >= expectedCost);
+      Boolean billCanBeClosedOut = (!deadWeightUser && totalCost >= expectedCost);
+      String status = billCanBeClosedOut ? "Closeable" : "Not Closeable";
+      String payload = "Bill status::" + status;
 
       socket.convertAndSend(destination, payload);
       System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
