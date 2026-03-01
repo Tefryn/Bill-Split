@@ -6,28 +6,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/itemDisplay";
 import FinalizeButton from "@/components/molecules/finalizeButton";
+import User from "@/types/user";
+import Item from "@/types/item";
+import Session from "@/types/session";
 
-interface Item {
-    id: number;
-    name: string;
-    cost: string;
-    shareable: boolean;
-    claimedBy: string[];
-}
 
-interface UserProps {
-    email: string;
-    total_cost: string;
-}
-
-interface Session {
-    id: number;
-    items: Item[];
-    users: UserProps[];
-    members: string[];
-    tax: number;
-    tip: number;
-}
 
 export default function SessionView() {
     const [userTotal, setUserTotal] = useState<number>(0);
@@ -92,7 +75,6 @@ export default function SessionView() {
             });
 
             const result = await response.json();
-            console.log(result.data?.claimItem);
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
@@ -113,7 +95,7 @@ export default function SessionView() {
                 const currentSession = await fetchSession();
                 setSession(currentSession);
 
-                const currentUser = currentSession?.users.find((user: UserProps) => user.email === userEmail);
+                const currentUser = currentSession?.users.find((user: User) => user.email === userEmail);
 
                 if (currentUser) {
                     setUserTotal(currentUser.total_cost);
