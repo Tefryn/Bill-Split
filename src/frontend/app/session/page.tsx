@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/itemDisplay";
+import { Client } from "@stomp/stompjs";
 
 interface Item {
     id: number;
@@ -121,6 +122,29 @@ export default function SessionView() {
         };
         loadSession();
     }, [sessionId, fetchSession, userEmail]);
+
+    useEffect(() => {
+        const client = new Client({
+        brokerURL: "ws://localhost:8080/ws",
+        onConnect: () => {
+            client.subscribe("/topic/session/" + sessionId + "/cost_update", (message) => {
+            const [claimerEmail, newCost] = message.body.split("::");
+            console.log("Received message:", message.body);
+            if (claimerEmail === userEmail) {
+                setUserTotal(parseFloat(newCost));
+            };
+        });
+        },
+        onStompError: (frame) => {
+            console.error("STOMP error:", frame);
+        },
+        });
+
+        client.activate();
+        return () => {
+        client.deactivate();
+        };
+    }, []);
     
     const handleClaim = async (item: Item) => {
         console.log('claim');

@@ -9,6 +9,7 @@ import com.bill_split.app.data.ItemRepository;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -22,12 +23,14 @@ public class SessionCostWorker {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
     private final StringRedisTemplate redis;
+    private final SimpMessagingTemplate socket;
 
-    public SessionCostWorker(SessionRepository sessionRepository, StringRedisTemplate redis, UserRepository userRepository, ItemRepository itemRepository) {
+    public SessionCostWorker(SessionRepository sessionRepository, StringRedisTemplate redis, UserRepository userRepository, ItemRepository itemRepository, SimpMessagingTemplate socket) {
         this.sessionRepository = sessionRepository;
         this.redis = redis;
         this.userRepository = userRepository;
         this.itemRepository = itemRepository;
+        this.socket = socket;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -86,6 +89,12 @@ public class SessionCostWorker {
                     Long itemTotalCost = item.getCost();
                     Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()-1));
                     claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+
+                    // send change to frontend
+                    // format userEmail::newTotalCost
+                    String destination = "/topic/session/" + sessionId + "/cost_update";
+                    String message = email + "::" + claimedUser.getTotalCost();
+                    socket.convertAndSend(destination, message);
                 }
             }
             else if (action.equals("unclaim")) {
@@ -98,6 +107,12 @@ public class SessionCostWorker {
                     Long itemTotalCost = item.getCost();
                     Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()+1));
                     claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+
+                    // send change to frontend
+                    // format userEmail::newTotalCost
+                    String destination = "/topic/session/" + sessionId + "/cost_update";
+                    String message = email + "::" + claimedUser.getTotalCost();
+                    socket.convertAndSend(destination, message);
                 }
             }
             userRepository.saveAll(users);
