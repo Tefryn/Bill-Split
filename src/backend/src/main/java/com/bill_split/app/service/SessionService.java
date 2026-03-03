@@ -15,7 +15,8 @@ import java.util.Optional;
 
 @Service
 public class SessionService {
-  private static final String NOTE_SUMMARY_EVENT_QUEUE = "note_summary_event_queue";
+  // TODO: Implement OCR
+  //private static final String SESSION_OCR_EVENT_QUEUE = "session_ocr_event_queue";
 
   private final SessionRepository sessionRepository;
   private final StringRedisTemplate redis;
@@ -34,9 +35,9 @@ public class SessionService {
     Session session = sessionRepository.save(new Session(input));
 
     // String event = session.getId() + "::" + content;
-    // redis.opsForList().rightPush(SESSION_SUMMARY_EVENT_QUEUE, event); For OCR
+    // redis.opsForList().rightPush(SESSION_OCR_EVENT_QUEUE, event); For OCR
 
-    // System.out.println(" queued summary job for note: " + note.getId());
+    // System.out.println(" queued OCR compilation job for session: " + session.getId());
 
     return session;
   }
@@ -60,7 +61,7 @@ public class SessionService {
       
       return true;
     }
-    return false; // Or throw an exception
+    return false;
   }
 
   public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
@@ -88,7 +89,6 @@ public class SessionService {
       item.setClaimedBy(claimedBy);
       user.setTotalCost(user.getTotalCost() + item.getCost());
       sessionRepository.save(session);
-      System.out.println("Claimed by list: " + item.getClaimedBy());
 
       checkBillFinalizable(sessionId);
       return user.getTotalCost();
@@ -123,6 +123,7 @@ public class SessionService {
       checkBillFinalizable(sessionId);
       return user.getTotalCost();
     }
+    System.out.println("Session not found with id: " + sessionId);
     return false;
   }
 
