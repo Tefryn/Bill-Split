@@ -83,7 +83,7 @@ public class SessionCostWorker {
                     }
                     Optional<User> optionalOtherUser = users.stream().filter(n -> n.getEmail().equals(email)).findFirst();
                     User claimedUser = optionalOtherUser.get();
-                    Long itemTotalCost = item.getTotalCost();
+                    Long itemTotalCost = item.getCost();
                     Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()-1));
                     claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
                 }
@@ -95,7 +95,7 @@ public class SessionCostWorker {
                     }
                     Optional<User> optionalOtherUser = users.stream().filter(n -> n.getEmail().equals(email)).findFirst();
                     User claimedUser = optionalOtherUser.get();
-                    Long itemTotalCost = item.getTotalCost();
+                    Long itemTotalCost = item.getCost();
                     Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()+1));
                     claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
                 }

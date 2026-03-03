@@ -135,7 +135,8 @@ export default function SessionView() {
         // otherwise, undo split and resplit with one extra person
         const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
                                 item.cost : 
-                                (item.cost * item.claimedBy.length) / (item.claimedBy.length + 1);
+                                item.cost / (item.claimedBy.length + 1);
+
         setUserTotal(oldUserTotal + costUpdate);
 
         const mutation = `
@@ -192,7 +193,7 @@ export default function SessionView() {
         // otherwise, undo split and resplit with one extra person
         const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
                                 item.cost : 
-                                (item.cost * item.claimedBy.length) / (item.claimedBy.length + 1);
+                                item.cost / (item.claimedBy.length + 1);
         setUserTotal(oldUserTotal - costUpdate);
 
         const mutation = `

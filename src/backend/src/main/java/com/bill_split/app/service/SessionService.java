@@ -91,7 +91,7 @@ public class SessionService {
 
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() + item.getCost());
+      user.setTotalCost(user.getTotalCost() + item.getSplitCost());
       itemRepository.save(item);
       userRepository.save(user);
       sessionRepository.save(session);
@@ -122,7 +122,7 @@ public class SessionService {
         return -1L;
       }
 
-      user.setTotalCost(user.getTotalCost() - item.getCost());
+      user.setTotalCost(user.getTotalCost() - item.getSplitCost());
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);

@@ -44,12 +44,12 @@ public class Item {
     this.name = name;
   }
 
-  public Long getCost() {
+  public Long getSplitCost() {
     int split = claimedBy.size() > 0 ? claimedBy.size() : 1;
     return cost / split;
   }
 
-  public Long getTotalCost() {
+  public Long getCost() {
     return cost;
   }
 
