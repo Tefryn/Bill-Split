@@ -156,8 +156,8 @@ export default function SessionView() {
         // if the user's already in the claimedBy list, then item.cost is accurate
         // otherwise, undo split and resplit with one extra person
         const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
-                                item.cost : 
-                                item.cost / (item.claimedBy.length + 1);
+                                (item.cost / item.claimedBy.length) : 
+                                (item.cost * item.claimedBy.length) / (item.claimedBy.length + 1);
 
         setUserTotal(oldUserTotal + costUpdate);
 
@@ -214,8 +214,8 @@ export default function SessionView() {
         // if the user's already in the claimedBy list, then item.cost is accurate
         // otherwise, undo split and resplit with one extra person
         const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
-                                item.cost : 
-                                item.cost / (item.claimedBy.length + 1);
+                                (item.cost / item.claimedBy.length) : 
+                                (item.cost * item.claimedBy.length) / (item.claimedBy.length + 1);
         setUserTotal(oldUserTotal - costUpdate);
 
         const mutation = `
