@@ -127,12 +127,10 @@ export default function SessionView() {
         const client = new Client({
         brokerURL: "ws://localhost:8080/ws",
         onConnect: () => {
-            client.subscribe("/topic/session/" + sessionId + "/cost_update", (message) => {
-            const [claimerEmail, newCost] = message.body.split("::");
+            client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
+            const newCost = message.body;
             console.log("Received message:", message.body);
-            if (claimerEmail === userEmail) {
-                setUserTotal(parseFloat(newCost));
-            };
+            setUserTotal(parseFloat(newCost));
         });
         },
         onStompError: (frame) => {

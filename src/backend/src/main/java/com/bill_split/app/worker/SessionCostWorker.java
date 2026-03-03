@@ -91,9 +91,8 @@ public class SessionCostWorker {
                     claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
 
                     // send change to frontend
-                    // format userEmail::newTotalCost
-                    String destination = "/topic/session/" + sessionId + "/cost_update";
-                    String message = email + "::" + claimedUser.getTotalCost();
+                    String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
+                    String message = claimedUser.getTotalCost().toString();
                     socket.convertAndSend(destination, message);
                 }
             }
@@ -109,9 +108,8 @@ public class SessionCostWorker {
                     claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
 
                     // send change to frontend
-                    // format userEmail::newTotalCost
-                    String destination = "/topic/session/" + sessionId + "/cost_update";
-                    String message = email + "::" + claimedUser.getTotalCost();
+                    String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
+                    String message = claimedUser.getTotalCost().toString();
                     socket.convertAndSend(destination, message);
                 }
             }
