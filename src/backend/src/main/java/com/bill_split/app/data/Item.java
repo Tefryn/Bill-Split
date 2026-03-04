@@ -14,7 +14,8 @@ public class Item {
 
   private Long cost;
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "item_claimed_by", joinColumns = @JoinColumn(name = "item_id"))
   private List<String> claimedBy;
 
   private Boolean shareable = false;
@@ -41,6 +42,11 @@ public class Item {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public Long getSplitCost() {
+    int split = claimedBy.size() > 0 ? claimedBy.size() : 1;
+    return cost / split;
   }
 
   public Long getCost() {

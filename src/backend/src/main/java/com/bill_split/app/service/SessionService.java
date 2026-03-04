@@ -1,17 +1,17 @@
 package com.bill_split.app.service;
 
 
-import com.bill_split.app.data.Session;
-import com.bill_split.app.graphql.SessionInput;
-import com.bill_split.app.data.Item;
-import com.bill_split.app.data.SessionRepository;
-import com.bill_split.app.data.User;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import com.bill_split.app.data.Item;
+import com.bill_split.app.data.Session;
+import com.bill_split.app.data.SessionRepository;
+import com.bill_split.app.data.User;
+import com.bill_split.app.graphql.SessionInput;
 
 @Service
 public class SessionService {
@@ -72,23 +72,27 @@ public class SessionService {
 
       System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
+        System.out.println("1");
         return -1L;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
-      if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
+      if (!item.getShareable() && !item.getClaimedBy().isEmpty() || item.getClaimedBy().contains(userEmail)) {
+        System.out.println("2");
         return -1L;
       }
 
       List<String> claimedBy = item.getClaimedBy();
+
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() + item.getCost());
       sessionRepository.save(session);
-      System.out.println("Claimed by list: " + item.getClaimedBy());
 
-      return user.getTotalCost();
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::claim");
+
+      return user.getTotalCost(); //ENSURE return boolean
     }
     System.out.println("Session not found with id: " + sessionId);
     return -1L;
@@ -112,12 +116,15 @@ public class SessionService {
       }
 
       List<String> claimedBy = item.getClaimedBy();
+      user.setTotalCost(user.getTotalCost() - item.getSplitCost());
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() - item.getCost());
       sessionRepository.save(session);
 
-      return user.getTotalCost();
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::unclaim");
+
+      return user.getTotalCost(); //ENSURE return boolean
     }
     return -1L;
   }

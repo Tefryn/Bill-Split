@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/itemDisplay";
+import { Client } from "@stomp/stompjs";
 
 interface Item {
     id: number;
     name: string;
     cost: number;
+    splitCost: number;
     shareable: boolean;
     claimedBy: string[];
 }
@@ -121,6 +123,27 @@ export default function SessionView() {
         };
         loadSession();
     }, [sessionId, fetchSession, userEmail]);
+
+    useEffect(() => {
+        const client = new Client({
+        brokerURL: "ws://localhost:8080/ws", //TODO: move to env variable
+        onConnect: () => {
+            client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
+            const newCost = message.body;
+            console.log("Received message:", message.body);
+            setUserTotal(parseFloat(newCost));
+        });
+        },
+        onStompError: (frame) => {
+            console.error("STOMP error:", frame);
+        },
+        });
+
+        client.activate();
+        return () => {
+        client.deactivate();
+        };
+    }, []);
     
     const handleClaim = async (item: Item) => {
         console.log('claim');
@@ -131,7 +154,17 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal + item.cost);
+        // if the user's already in the claimedBy list, then item.cost is accurate
+        // otherwise, undo split and resplit with one extra person
+        let costUpdate: number;
+        if (item.claimedBy.length === 0)
+        { costUpdate = item.cost; }
+        else if (item.claimedBy.includes(userEmail)) 
+        { costUpdate = item.cost / (item.claimedBy.length); }
+        else
+        { costUpdate = item.cost / (item.claimedBy.length + 1); }
+
+        setUserTotal(oldUserTotal + costUpdate);
 
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -158,7 +191,6 @@ export default function SessionView() {
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
-                setUserTotal(result.data.claimItem);
                 setIsLoading(false);
                 return true;
             } else {
@@ -183,7 +215,17 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal - item.cost);
+        // if the user's already in the claimedBy list, then item.cost is accurate
+        // otherwise, undo split and resplit with one extra person
+        let costUpdate: number;
+        if (item.claimedBy.length === 0)
+        { costUpdate = item.cost; }
+        else if (item.claimedBy.includes(userEmail)) 
+        { costUpdate = item.cost / (item.claimedBy.length); }
+        else
+        { costUpdate = item.cost / (item.claimedBy.length + 1); }
+
+        setUserTotal(oldUserTotal - costUpdate);
 
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -213,7 +255,6 @@ export default function SessionView() {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
                 console.log(result.data.unclaimItem)
-                setUserTotal(result.data.unclaimItem);
                 setIsLoading(false);
                 return true;
             } else {
@@ -238,7 +279,7 @@ export default function SessionView() {
         return (
             <main className="max-w-2xl mx-auto p-6">
                 <Header 
-                    title="Group View" 
+                    title="Session View" 
                     subtitle=""
                     showBackButton 
                     backHref="/" 
