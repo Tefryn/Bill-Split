@@ -71,40 +71,32 @@ public class SessionCostWorker {
             Item item = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst().get();
 
             List<String> claimedBy = item.getClaimedBy();
-            if (action.equals("claim")) {
-                for (String email : claimedBy) {
-                    if (email.equals(userEmail)) {
-                        continue;
-                    }
-                    Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
-                    User claimedUser = optionalOtherUser.get();
-                    Long itemTotalCost = item.getCost();
-                    Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()-1));
-                    claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
 
-                    // send change to frontend
-                    String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
-                    String message = claimedUser.getTotalCost().toString();
-                    socket.convertAndSend(destination, message);
+            for (String email : claimedBy) {
+                if (email.equals(userEmail)) {
+                    continue;
                 }
-            }
-            else if (action.equals("unclaim")) {
-                for (String email : claimedBy) {
-                    if (email.equals(userEmail)) {
-                        continue;
-                    }
-                    Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
-                    User claimedUser = optionalOtherUser.get();
-                    Long itemTotalCost = item.getCost();
-                    Long costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()+1));
-                    claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+                Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+                User claimedUser = optionalOtherUser.get();
+                Long itemTotalCost = item.getCost();
 
-                    // send change to frontend
-                    String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
-                    String message = claimedUser.getTotalCost().toString();
-                    socket.convertAndSend(destination, message);
+                Long costUpdate = 0L;
+                // calculate cost update
+                if (action.equals("claim")) {
+                    costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()-1));
                 }
+                else if (action.equals("unclaim")) {
+                    costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()+1));
+                }
+
+                claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+
+                // send change to frontend
+                String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
+                String message = claimedUser.getTotalCost().toString();
+                socket.convertAndSend(destination, message);
             }
+
             sessionRepository.save(session);
         }
     }
