@@ -23,7 +23,7 @@ export default function CreateSessionPage() {
     const [tip, setTip] = useState("");
     const [isPercent, setIsPercent] = useState(false);
     const [items, setItems] = useState<ItemProps[]>([]);
-    const API_URL = "http://localhost:8080";
+    const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
 
     const router = useRouter();
     
