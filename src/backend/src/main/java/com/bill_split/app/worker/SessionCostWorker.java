@@ -1,18 +1,19 @@
 package com.bill_split.app.worker;
 
-import com.bill_split.app.data.Session;
-import com.bill_split.app.data.SessionRepository;
-import com.bill_split.app.data.User;
-import com.bill_split.app.data.Item;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
+import com.bill_split.app.data.Item;
+import com.bill_split.app.data.Session;
+import com.bill_split.app.data.SessionRepository;
+import com.bill_split.app.data.User;
 
 @Service
 public class SessionCostWorker {
@@ -73,20 +74,25 @@ public class SessionCostWorker {
             List<String> claimedBy = item.getClaimedBy();
 
             for (String email : claimedBy) {
-                if (email.equals(userEmail)) {
-                    continue;
-                }
                 Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
                 User claimedUser = optionalOtherUser.get();
                 Long itemTotalCost = item.getCost();
-
-                Long costUpdate = 0L;
+               
+                Long costUpdate;
+                Long newCost= itemTotalCost / claimedBy.size();
                 // calculate cost update
                 if (action.equals("claim")) {
-                    costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()-1));
+                    Long prevCost= itemTotalCost / Math.max(claimedBy.size()-1,1);
+                    if (email.equals(userEmail)) {
+                        prevCost = 0L; // if claiming, the new user had no cost before
+                    }
+                    costUpdate = newCost - prevCost;
+                    System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
                 }
-                else if (action.equals("unclaim")) {
-                    costUpdate = (itemTotalCost / claimedBy.size()) - (itemTotalCost / (claimedBy.size()+1));
+                else{
+                    Long prevCost= itemTotalCost / (claimedBy.size()+1);  
+                    costUpdate = newCost - prevCost;
+                    System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
                 }
 
                 claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);

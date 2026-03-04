@@ -126,7 +126,7 @@ export default function SessionView() {
 
     useEffect(() => {
         const client = new Client({
-        brokerURL: "ws://localhost:8080/ws",
+        brokerURL: "ws://localhost:8080/ws", //TODO: move to env variable
         onConnect: () => {
             client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
             const newCost = message.body;
@@ -164,10 +164,6 @@ export default function SessionView() {
         else
         { costUpdate = item.cost / (item.claimedBy.length + 1); }
 
-        //const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
-        //                        item.cost / (item.claimedBy.length) : 
-        //                        item.cost / (item.claimedBy.length + 1);
-
         setUserTotal(oldUserTotal + costUpdate);
 
         const mutation = `
@@ -195,7 +191,6 @@ export default function SessionView() {
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
-                setUserTotal(result.data.claimItem);
                 setIsLoading(false);
                 return true;
             } else {
@@ -230,10 +225,6 @@ export default function SessionView() {
         else
         { costUpdate = item.cost / (item.claimedBy.length + 1); }
 
-
-        //const costUpdate = item.claimedBy.includes(userEmail) || item.claimedBy.length == 0 ? 
-        //                       item.cost / (item.claimedBy.length) : 
-        //                       item.cost / (item.claimedBy.length + 1);
         setUserTotal(oldUserTotal - costUpdate);
 
         const mutation = `
@@ -264,7 +255,6 @@ export default function SessionView() {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
                 console.log(result.data.unclaimItem)
-                setUserTotal(result.data.unclaimItem);
                 setIsLoading(false);
                 return true;
             } else {
