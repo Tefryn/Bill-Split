@@ -6,8 +6,6 @@ import com.bill_split.app.graphql.SessionInput;
 import com.bill_split.app.data.Item;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
-import com.bill_split.app.data.UserRepository;
-import com.bill_split.app.data.ItemRepository;
 import java.util.Arrays;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -21,14 +19,10 @@ public class SessionService {
 
   private final SessionRepository sessionRepository;
   private final StringRedisTemplate redis;
-  private final UserRepository userRepository;
-  private final ItemRepository itemRepository;
 
-  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis, UserRepository userRepository, ItemRepository itemRepository) {
+  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis) {
     this.sessionRepository = sessionRepository;
     this.redis = redis;
-    this.userRepository = userRepository;
-    this.itemRepository = itemRepository;
   }
 
   public Optional<Session> getSessionById(Long sessionId) {
@@ -92,8 +86,6 @@ public class SessionService {
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
       user.setTotalCost(user.getTotalCost() + item.getSplitCost());
-      itemRepository.save(item);
-      userRepository.save(user);
       sessionRepository.save(session);
 
       // update rest of users
@@ -126,8 +118,6 @@ public class SessionService {
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      itemRepository.save(item);
-      userRepository.save(user);
       sessionRepository.save(session);
 
       // update rest of users
