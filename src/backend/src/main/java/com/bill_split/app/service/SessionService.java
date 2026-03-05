@@ -1,6 +1,6 @@
 package com.bill_split.app.service;
 
-
+import java.math.BigDecimal;
 import com.bill_split.app.data.Session;
 import com.bill_split.app.graphql.SessionInput;
 import com.bill_split.app.data.Item;
@@ -8,6 +8,7 @@ import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
 import java.util.Arrays;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,10 +21,12 @@ public class SessionService {
 
   private final SessionRepository sessionRepository;
   private final StringRedisTemplate redis;
+  private final SimpMessagingTemplate socket;
 
-  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis) {
+  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis, SimpMessagingTemplate socket) {
     this.sessionRepository = sessionRepository;
     this.redis = redis;
+    this.socket = socket;
   }
 
   public Optional<Session> getSessionById(Long sessionId) {
@@ -64,6 +67,26 @@ public class SessionService {
     return false;
   }
 
+  public Boolean leaveSession(Long sessionId, String userEmail) {
+    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+    if (optionalSession.isPresent()) {
+      Session session = optionalSession.get();
+      List<User> users = session.getUsers();
+      
+      boolean userRemoved = users.removeIf(n -> n.getEmail().equals(userEmail));
+      
+      if (userRemoved) {
+        session.setUsers(users);
+        sessionRepository.save(session);
+      }
+
+      checkBillFinalizable(sessionId);
+      
+      return userRemoved;
+    }
+    return false;
+ }
+
   public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
     System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
@@ -87,11 +110,11 @@ public class SessionService {
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() + item.getCost());
+      user.setTotalCost(user.getTotalCost().add(item.getCost()));
       sessionRepository.save(session);
 
       checkBillFinalizable(sessionId);
-      return user.getTotalCost();
+      return true;
     }
     System.out.println("Session not found with id: " + sessionId);
     return false;
@@ -117,11 +140,11 @@ public class SessionService {
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() - item.getCost());
+      user.setTotalCost(user.getTotalCost().subtract(item.getCost()));
       sessionRepository.save(session);
 
       checkBillFinalizable(sessionId);
-      return user.getTotalCost();
+      return true;
     }
     System.out.println("Session not found with id: " + sessionId);
     return false;
@@ -132,12 +155,16 @@ public class SessionService {
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
       List<User> users = session.getUsers();
-      BigDecimal expectedCost = session.getItems().stream().mapToBigDecimal(Item::getCost).sum();
-      BigDecimal totalCost = users.stream().mapToBigDecimal(User::getTotalCost).getTotalCost().sum();
-      Bool deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost() == 0);
+      BigDecimal expectedCost = session.getItems().stream().map(Item::getCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+      BigDecimal totalCost = users.stream().map(User::getTotalCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+      Boolean deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost().compareTo(BigDecimal.ZERO) == 0);
+
+      // BigDecimal expectedCost = session.getItems().stream().mapToBigDecimal(Item::getCost).sum();
+      // BigDecimal totalCost = users.stream().mapToBigDecimal(User::getTotalCost).getTotalCost().sum();
+      // .map(Item::getCost).reduce(BigDecimal.ZERO, BigDecimal::add);
 
       String destination = "/topic/session/" + Long.toString(sessionId);
-      Boolean billCanBeClosedOut = (!deadWeightUser && totalCost >= expectedCost);
+      Boolean billCanBeClosedOut = (!deadWeightUser && totalCost.compareTo(expectedCost) >= 0);
       String status = billCanBeClosedOut ? "Closeable" : "Not Closeable";
       String payload = "Bill status::" + status;
 
@@ -146,7 +173,7 @@ public class SessionService {
     }
   }
 
-  private void finalizeSession(Long sessionId) {
+  public void finalizeSession(Long sessionId) {
     String destination = "/topic/session/" + Long.toString(sessionId);
     String payload = "Bill status::Finished";
 

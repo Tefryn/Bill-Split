@@ -13,7 +13,7 @@ import Session from "@/types/session";
 
 
 export default function SessionView() {
-    const [userTotal, setUserTotal] = useState<number>(0);
+    const [userTotal, setUserTotal] = useState<string>("0.00");
     const [session, setSession] = useState<Session>();
     const [isLoading, setIsLoading] = useState<boolean>();
     const [errMessage, setErrMessage] = useState<string>("");
@@ -165,7 +165,7 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal - parseFloat(item.cost));
+        setUserTotal((parseFloat(oldUserTotal) - parseFloat(item.cost)).toString());
 
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -208,6 +208,51 @@ export default function SessionView() {
         setIsLoading(false);
         return false;
     }
+
+    const handleLeave = async (e: React.FormEvent) => {
+        if(isLoading || !userEmail) {
+            return
+        }
+        e.preventDefault();
+
+        const mutation = `
+            mutation LeaveSession($sessionId: ID!, $userEmail: String!) {
+                leaveSession(sessionId: $sessionId, userEmail: $userEmail)
+            }
+        `;
+            
+        try {
+            setIsLoading(true);
+            const response = await fetch(`${API_URL}/graphql`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: mutation,
+                    variables: { 
+                        sessionId: sessionId,
+                        userEmail: userEmail
+                    }, 
+                }),
+            });
+            
+            const result = await response.json();
+            
+            if (result.errors) {
+                console.error(`GraphQL Error: ${result.errors[0].message}`);
+            } else if (result.data?.leaveSession && result.data?.leaveSession) {
+                setUser("", "");
+                router.push(`/`);
+            } else {
+                setErrMessage("Failed to leave session.");
+                setTimeout(() => setErrMessage(""), 3000);
+            }
+        } catch (err) {
+            console.error("Network error occurred.", err);
+        }
+        setIsLoading(false);
+    };
 
     const handleLogOut = () => {
         setUser("", "");
@@ -253,6 +298,9 @@ export default function SessionView() {
         );
     }
 
+    console.log('userTotal Value:', userTotal);
+    console.log('userTotal Type:', typeof userTotal);
+
     return (
     <main className="max-w-2xl mx-auto p-6">
       <Header 
@@ -269,7 +317,7 @@ export default function SessionView() {
 
         <div>
             <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
-            <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${userTotal.toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${parseFloat(userTotal).toFixed(2)}</h2>
         </div>
 
         <div>
@@ -312,6 +360,15 @@ export default function SessionView() {
 
         <div>
             <FinalizeButton />
+        </div>
+
+        <div>
+            <button 
+                onClick = {handleLeave}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
+            >
+                Leave Session
+            </button>
         </div>
 
         {/* <div>

@@ -8,6 +8,7 @@ type Mutation {
   joinSession(sessionId: ID!, userEmail: String!): Boolean
   unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!
   finalizeSession(sessionId: ID!): Boolean!
+  leaveSession(sessionId: ID!, userEmail: String!): Boolean
 } 
 
 type Session {

@@ -36,6 +36,11 @@ public class SessionController {
     }
 
     @MutationMapping
+    public Boolean leaveSession(@Argument Long sessionId, @Argument String userEmail) {
+        return sessionService.leaveSession(sessionId, userEmail);
+    }
+
+    @MutationMapping
     public Boolean unclaimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
         return sessionService.unclaimItem(sessionId, itemId, userEmail);
     }
@@ -46,7 +51,7 @@ public class SessionController {
     }
 
     @MutationMapping
-    public Boolean finalizeSession(@Argument Long sessionId) {
-        return sessionService.finalizeSession(sessionId);
+    public void finalizeSession(@Argument Long sessionId) {
+        sessionService.finalizeSession(sessionId);
     }
 }

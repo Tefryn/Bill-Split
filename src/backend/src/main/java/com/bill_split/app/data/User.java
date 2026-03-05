@@ -1,6 +1,7 @@
 package com.bill_split.app.data;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "users")
@@ -13,7 +14,7 @@ public class User {
     private String email;
     
     @Column(name = "total_cost")
-    private BigDecimal total_cost = 0;
+    private BigDecimal total_cost = BigDecimal.ZERO;
     
     public Long getId() {
         return id;
