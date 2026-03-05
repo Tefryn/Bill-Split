@@ -193,8 +193,10 @@ export default function SessionView() {
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.claimItem == null) {
-                console.error("Error: Failed to claim item.");
+            } else if (result.data?.unclaimItem == null) {
+                setErrMessage("Failed to unclaim item. Please try again.");
+                setTimeout(() => setErrMessage(""), 3000)
+                setUserTotal(oldUserTotal); // revert ui
             } else {
                 setIsLoading(false);
                 return true;
@@ -202,9 +204,6 @@ export default function SessionView() {
         } catch (err) {
             console.error("Network error occurred.", err);
         }
-        setErrMessage("Failed to unclaim item. Please try again.");
-        setTimeout(() => setErrMessage(""), 3000)
-        setUserTotal(oldUserTotal); // revert ui
         setIsLoading(false);
         return false;
     }
@@ -214,6 +213,12 @@ export default function SessionView() {
             return
         }
         e.preventDefault();
+
+        const itemsToUnclaim = session?.items.filter((item) => item.claimedBy.includes(userEmail)) || [];
+        for (const item of itemsToUnclaim) {
+            await handleUnclaim(item);
+        }
+
 
         const mutation = `
             mutation LeaveSession($sessionId: ID!, $userEmail: String!) {
