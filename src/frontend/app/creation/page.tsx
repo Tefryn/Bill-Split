@@ -32,7 +32,7 @@ export default function CreateSessionPage() {
             return
         }
         e.preventDefault();
-
+        
         const mutation = `
             mutation CreateSession($input: CreateSessionInput!) {
                 createSession(input: $input) {
@@ -58,11 +58,11 @@ export default function CreateSessionPage() {
             name: sessionName,
             items: items.map(item => ({
                 name: item.name,
-                cost: item.cost,
+                cost: String(item.cost),
                 shareable: item.shareable,
                 claimedBy: [],
             })),
-            users: [{ email: userEmail, total_cost: 0 }],
+            users: [{ email: userEmail, total_cost: "0.00" }],
             tax: parseFloat(tax) || 0,
             tip: parseFloat(tip) || 0,
         };
@@ -83,7 +83,6 @@ export default function CreateSessionPage() {
             });
             
             const result = await response.json();
-            console.log(result)
             
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);

@@ -4,7 +4,7 @@ import { useState } from "react";
 interface ItemProps {
     id: number;
     name: string;
-    cost: number;
+    cost: string;
     shareable: boolean;
     claimedBy: string[];
 }
@@ -46,7 +46,7 @@ export function ItemDisplay({ item, onClaim, onUnclaim, isClaimed, disabled }: I
         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
             <div>
                 <p className="font-semibold text-black">{item.name}</p>
-                <p className="text-sm text-gray-600">${item.cost.toFixed(2)} - {item.shareable ? "Shareable" : "Not Shareable"}</p>
+                <p className="text-sm text-gray-600">${parseFloat(item.cost).toFixed(2)} - {item.shareable ? "Shareable" : "Not Shareable"}</p>
                 {item.claimedBy.length > 0 && (
                     <p className="text-xs text-gray-500">
                         Claimed by: {item.claimedBy.join(', ')}

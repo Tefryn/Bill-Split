@@ -5,30 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/itemDisplay";
+import User from "@/types/user";
+import Item from "@/types/item";
+import Session from "@/types/session";
 import { Client } from "@stomp/stompjs";
-
-interface Item {
-    id: number;
-    name: string;
-    cost: number;
-    splitCost: number;
-    shareable: boolean;
-    claimedBy: string[];
-}
-
-interface UserProps {
-    email: string;
-    total_cost: number;
-}
-
-interface Session {
-    id: number;
-    items: Item[];
-    users: UserProps[];
-    members: string[];
-    tax: number;
-    tip: number;
-}
 
 export default function SessionView() {
     const [userTotal, setUserTotal] = useState<number>(0);
@@ -36,6 +16,7 @@ export default function SessionView() {
     const [isLoading, setIsLoading] = useState<boolean>();
     const [errMessage, setErrMessage] = useState<string>("");
     const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
+    const { setUser } = useUser();
     const { email: userEmail, sessionId: sessionId } = useUser();
 
     const router = useRouter();
@@ -43,7 +24,7 @@ export default function SessionView() {
     console.log('result');
 
     const itemTotal = () => {
-        return session?.items.reduce((acc, item) => acc + item.cost, 0) || 0;
+        return session?.items.reduce((acc: number, item: Item) => acc + parseFloat(item.cost), 0) || 0;
     };
 
     const taxAmount = () => {
@@ -92,7 +73,6 @@ export default function SessionView() {
             });
 
             const result = await response.json();
-            console.log(result.data?.claimItem);
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
@@ -113,7 +93,7 @@ export default function SessionView() {
                 const currentSession = await fetchSession();
                 setSession(currentSession);
 
-                const currentUser = currentSession?.users.find((user: UserProps) => user.email === userEmail);
+                const currentUser = currentSession?.users.find((user: User) => user.email === userEmail);
 
                 if (currentUser) {
                     setUserTotal(currentUser.total_cost);
@@ -156,12 +136,13 @@ export default function SessionView() {
         // if the user's already in the claimedBy list, then item.cost is accurate
         // otherwise, undo split and resplit with one extra person
         let costUpdate: number;
+        const itemCost = parseFloat(item.cost);
         if (item.claimedBy.length === 0)
-        { costUpdate = item.cost; }
+        { costUpdate = itemCost; }
         else if (item.claimedBy.includes(userEmail)) 
-        { costUpdate = item.cost / (item.claimedBy.length); }
+        { costUpdate = itemCost / (item.claimedBy.length); }
         else
-        { costUpdate = item.cost / (item.claimedBy.length + 1); }
+        { costUpdate = itemCost / (item.claimedBy.length + 1); }
 
         setUserTotal(oldUserTotal + costUpdate);
 
@@ -192,8 +173,6 @@ export default function SessionView() {
             } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
                 setIsLoading(false);
                 return true;
-            } else {
-                console.error("Error: Failed to claim item.");
             }
         } catch (err) {
             console.error("Network error occurred.", err);
@@ -216,13 +195,15 @@ export default function SessionView() {
         const oldUserTotal = userTotal
         // if the user's already in the claimedBy list, then item.cost is accurate
         // otherwise, undo split and resplit with one extra person
+
         let costUpdate: number;
+        const itemCost = parseFloat(item.cost);
         if (item.claimedBy.length === 0)
-        { costUpdate = item.cost; }
+        { costUpdate = itemCost; }
         else if (item.claimedBy.includes(userEmail)) 
-        { costUpdate = item.cost / (item.claimedBy.length); }
+        { costUpdate = itemCost / (item.claimedBy.length); }
         else
-        { costUpdate = item.cost / (item.claimedBy.length + 1); }
+        { costUpdate = itemCost / (item.claimedBy.length + 1); }
 
         setUserTotal(oldUserTotal - costUpdate);
 
@@ -256,8 +237,6 @@ export default function SessionView() {
                 console.log(result.data.unclaimItem)
                 setIsLoading(false);
                 return true;
-            } else {
-                console.error("Error: Failed to unclaim item.");
             }
         } catch (err) {
             console.error("Network error occurred.", err);
@@ -328,8 +307,8 @@ export default function SessionView() {
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
-            <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${userTotal.toFixed(2)}</h2>
+              <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
+              <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${Number(userTotal).toFixed(2)}</h2>
         </div>
 
         <div>
