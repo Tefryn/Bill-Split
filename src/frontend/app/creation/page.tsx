@@ -109,7 +109,12 @@ export default function CreateSessionPage() {
 
     const handleEditItem = (index: number, name: string, cost: number, shareable: boolean) => {
         console.log(`Editing item at index ${index} with new values: ${name}, ${cost}, ${shareable}`);
-        return 1;
+        if (name === "" || isNaN(cost) || cost < 0) {
+            setErrMessage("Invalid item details. Please check your inputs.");
+            setTimeout(() => setErrMessage(""), 3000);
+            return;
+        }
+        setItems(items.map((item, i) => i === index ? { name, cost, shareable } : item));
     }
 
     const handleDeleteItem = (index: number) => {
@@ -175,6 +180,8 @@ export default function CreateSessionPage() {
             <ItemEntry addItem={addItem}></ItemEntry>
         </div>
 
+        <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
+
         {/* Item Display */}
         <div>
             <ul className="space-y-2">
@@ -183,7 +190,7 @@ export default function CreateSessionPage() {
                         key={index}
                         id={index}
                         name={item.name} 
-                        cost={item.cost} 
+                        cost={(item.cost).toString()} 
                         shareable={item.shareable} 
                         onEdit={handleEditItem}
                         onDelete={handleDeleteItem}>    
