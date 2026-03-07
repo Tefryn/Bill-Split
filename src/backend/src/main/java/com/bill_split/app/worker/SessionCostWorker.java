@@ -3,6 +3,7 @@ package com.bill_split.app.worker;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -76,26 +77,26 @@ public class SessionCostWorker {
             for (String email : claimedBy) {
                 Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
                 User claimedUser = optionalOtherUser.get();
-                Long itemTotalCost = item.getCost();
+                BigDecimal itemTotalCost = item.getCost();
                
-                Long costUpdate;
-                Long newCost= itemTotalCost / claimedBy.size();
+                BigDecimal costUpdate;
+                BigDecimal newCost= itemTotalCost.divide(new BigDecimal(claimedBy.size()));
                 // calculate cost update
                 if (action.equals("claim")) {
-                    Long prevCost= itemTotalCost / Math.max(claimedBy.size()-1,1);
+                    BigDecimal prevCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size()-1,1)));
                     if (email.equals(userEmail)) {
-                        prevCost = 0L; // if claiming, the new user had no cost before
+                        prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
                     }
-                    costUpdate = newCost - prevCost;
+                    costUpdate = newCost.subtract(prevCost);
                     System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
                 }
                 else{
-                    Long prevCost= itemTotalCost / (claimedBy.size()+1);  
-                    costUpdate = newCost - prevCost;
+                    BigDecimal prevCost= itemTotalCost.divide((new BigDecimal(claimedBy.size()+1)));  
+                    costUpdate = newCost.subtract( prevCost);
                     System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
                 }
 
-                claimedUser.setTotalCost(claimedUser.getTotalCost() + costUpdate);
+                claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
 
                 // send change to frontend
                 String destination = "/topic/session/" + sessionId + "/cost_update/" + email;

@@ -9,8 +9,8 @@ public class SessionInput {
   private List<User> users;
   private String name;
   private Boolean shareable;
-  private Long tax;
-  private Long tip;
+  private String tax;
+  private String tip;
 
   public SessionInput() {
   }
@@ -47,19 +47,19 @@ public class SessionInput {
     this.shareable = shareable;
   }
 
-  public Long getTax() {
+  public String getTax() {
     return tax;
   }
 
-  public void setTax(Long tax) {
+  public void setTax(String tax) {
     this.tax = tax;
   }
 
-  public Long getTip() {
+  public String getTip() {
     return tip;
   }
 
-  public void setTip(Long tip) {
+  public void setTip(String tip) {
     this.tip = tip;
   }
 }
