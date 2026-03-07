@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
+import { ItemEditor } from "@/components/molecules/itemEditor";
 import { useUser } from "@/components/molecules/userContext";
 
 interface ItemProps {
@@ -14,6 +15,13 @@ interface ItemProps {
 }
 
 export default function CreateSessionPage() {
+    // hard coded items for testing
+    // these items would be parsed from whatever the backend returns
+    const parsedItems: ItemProps[] = [
+        { name: "Pizza", cost: 20.00, shareable: true },
+        { name: "Pasta", cost: 15.00, shareable: false },
+    ];
+
     const { setUser } = useUser();
     const [errMessage, setErrMessage] = useState("");
     const [sessionName, setSessionName] = useState("");
@@ -22,7 +30,7 @@ export default function CreateSessionPage() {
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
     const [isPercent, setIsPercent] = useState(false);
-    const [items, setItems] = useState<ItemProps[]>([]);
+    const [items, setItems] = useState<ItemProps[]>(parsedItems);
     const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
 
     const router = useRouter();
@@ -99,6 +107,15 @@ export default function CreateSessionPage() {
         setIsLoading(false);
     };
 
+    const handleEditItem = (index: number, name: string, cost: number, shareable: boolean) => {
+        console.log(`Editing item at index ${index} with new values: ${name}, ${cost}, ${shareable}`);
+        return 1;
+    }
+
+    const handleDeleteItem = (index: number) => {
+        setItems(items.filter((_, i) => i !== index));
+    }
+
     const addItem = (name: string, cost: number, shareable: boolean) => {
         const newItem = {name, cost, shareable};
         setItems([newItem, ...items]);
@@ -162,10 +179,15 @@ export default function CreateSessionPage() {
         <div>
             <ul className="space-y-2">
                 {items.map((item, index) => (
-                    <li key={index} className="flex justify-between text-black items-center bg-black-50 p-3 rounded-md border">
-                        <span>{item.name} - {item.cost.toFixed(2)}</span>
-                        <span className="text-sm font-medium">{item.shareable ? "Shared" : "Not Shared"}</span>
-                    </li>
+                    <ItemEditor 
+                        key={index}
+                        id={index}
+                        name={item.name} 
+                        cost={item.cost} 
+                        shareable={item.shareable} 
+                        onEdit={handleEditItem}
+                        onDelete={handleDeleteItem}>    
+                    </ItemEditor>
                 ))}
             </ul>
         </div>
@@ -208,7 +230,7 @@ export default function CreateSessionPage() {
                     placeholder="in $ or %"
                 />
             </div>
-            { /* Tip Entry */ }
+            { /* Tip Switch */ }
             <div className="flex-2">
                 <label className="block text-sm font-medium mb-2 text-gray-700">
                     Tip in $ or %?
