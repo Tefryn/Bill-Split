@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useEffect } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
 import { ItemEditor } from "@/components/molecules/itemEditor";
 import { useUser } from "@/components/molecules/userContext";
+import { Client } from "@stomp/stompjs";
 
 interface ItemProps {
     name: string;
@@ -149,6 +151,28 @@ export default function CreateSessionPage() {
         }
         return itemTotal() * (parseFloat(tip) / 100);
     }
+
+    useEffect(() => {
+            const client = new Client({
+            brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
+            onConnect: () => {
+                client.subscribe("/topic/hash", (message) => { // update with hash from user context
+                const itemData = message.body;
+                console.log("Received message:", message.body);
+                // parse backend work here
+                setItems(parsedItems);
+            });
+            },
+            onStompError: (frame) => {
+                console.error("STOMP error:", frame);
+            },
+            });
+    
+            client.activate();
+            return () => {
+            client.deactivate();
+            };
+    }, []);
 
     return (
     <main className="max-w-2xl mx-auto p-6">
