@@ -105,7 +105,7 @@ export default function SessionView() {
 
     useEffect(() => {
         const client = new Client({
-        brokerURL: "ws://localhost:8080/ws", //TODO: move to env variable
+        brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
         onConnect: () => {
             client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
             const newCost = message.body;

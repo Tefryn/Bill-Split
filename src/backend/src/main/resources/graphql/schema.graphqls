@@ -14,8 +14,8 @@ type Session {
   name: String!
   items: [Item!]!
   users: [User]!
-  tip: Int!
-  tax: Int!
+  tip: String!
+  tax: String!
 }
 
 type Item {
@@ -34,8 +34,8 @@ type User {
 input CreateSessionInput {
   items: [ItemInput!]!
   users: [UserInput!]!
-  tax: Int!
-  tip: Int!
+  tax: String!
+  tip: String!
   name: String!
 }
 
