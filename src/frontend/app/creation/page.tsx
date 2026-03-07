@@ -6,6 +6,7 @@ import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
 import { useUser } from "@/components/molecules/userContext";
+import { ItemEditor } from "@/components/molecules/itemEditor";
 import ImadeUploader from "@/components/molecules/imageUploader";
 import { parse } from "path";
 
@@ -103,6 +104,20 @@ export default function CreateSessionPage() {
         }
         setIsLoading(false);
     };
+
+    const handleEditItem = (index: number, name: string, cost: number, shareable: boolean) => {
+        console.log(`Editing item at index ${index} with new values: ${name}, ${cost}, ${shareable}`);
+        if (name === "" || isNaN(cost) || cost < 0) {
+            setErrMessage("Invalid item details. Please check your inputs.");
+            setTimeout(() => setErrMessage(""), 3000);
+            return;
+        }
+        setItems(items.map((item, i) => i === index ? { name, cost, shareable } : item));
+    }
+
+    const handleDeleteItem = (index: number) => {
+        setItems(items.filter((_, i) => i !== index));
+    }
 
     const addItem = (name: string, cost: number, shareable: boolean) => {
         const newItem = {name, cost, shareable};
@@ -225,10 +240,15 @@ export default function CreateSessionPage() {
         <div>
             <ul className="space-y-2">
                 {items.map((item, index) => (
-                    <li key={index} className="flex justify-between text-black items-center bg-black-50 p-3 rounded-md border">
-                        <span>{item.name} - {item.cost.toFixed(2)}</span>
-                        <span className="text-sm font-medium">{item.shareable ? "Shared" : "Not Shared"}</span>
-                    </li>
+                    <ItemEditor 
+                        key={index}
+                        id={index}
+                        name={item.name} 
+                        cost={(item.cost).toString()} 
+                        shareable={item.shareable} 
+                        onEdit={handleEditItem}
+                        onDelete={handleDeleteItem}>    
+                    </ItemEditor>
                 ))}
             </ul>
         </div>
