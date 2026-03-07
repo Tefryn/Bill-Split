@@ -8,6 +8,7 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -46,32 +47,7 @@ public class SessionController {
     }
 
     @MutationMapping
-    public Boolean parseReceipt(@Argument MultipartFile file, @Argument String uniqueHash) {
-        try {
-            // Validate file
-            if (file == null || file.isEmpty()) {
-                return new ReceiptParseResult(false, "No file provided", uniqueHash);
-            }
-
-            // Validate it's an image
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
-                return new ReceiptParseResult(false, "File must be an image", uniqueHash);
-            }
-
-            // Get file bytes and queue for OCR processing
-            byte[] imageBytes = file.getBytes();
-            sessionService.queueImageForOCR(imageBytes);
-
-            System.out.println("Receipt uploaded via GraphQL: " + file.getOriginalFilename() + 
-                             " (" + imageBytes.length + " bytes)");
-
-            return true;
-
-        } catch (Exception e) {
-            System.err.println("Error processing receipt: " + e.getMessage());
-            e.printStackTrace();
-            return new ReceiptParseResult(false, "Failed to process file: " + e.getMessage(), uniqueHash);
-        }
+    public Boolean parseReceipt(@Argument MultipartFile file, @Argument String returnHash) {
+        return sessionService.parseReceipt(file, returnHash);
     }
 }
