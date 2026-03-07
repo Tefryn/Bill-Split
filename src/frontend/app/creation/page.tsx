@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
 import { useUser } from "@/components/molecules/userContext";
 import { ItemEditor } from "@/components/molecules/itemEditor";
-import ImadeUploader from "@/components/molecules/imageUploader";
+import { Client } from "@stomp/stompjs";
+import ImageUploader from "@/components/molecules/imageUploader";
 import { parse } from "path";
 
 interface ItemProps {
@@ -180,9 +181,23 @@ export default function CreateSessionPage() {
             // Add the actual file
             formData.append('0', file);
 
+            // const response = await fetch(`${API_URL}/graphql`, {
+            //     method: 'POST',
+            //     body: formData,
+            // });
+
             const response = await fetch(`${API_URL}/graphql`, {
                 method: 'POST',
-                body: formData,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: mutation,
+                    variables: { 
+                        file: "test",
+                        uniqueHash: uniqueHash
+                    }, 
+                }),
             });
             
             const result = await response.json();
@@ -205,6 +220,32 @@ export default function CreateSessionPage() {
         }
         setIsLoading(false);
     }
+
+    useEffect(() => {
+            const client = new Client({
+            //rokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
+            brokerURL: `ws://localhost:8080/ws`,
+            onConnect: () => {
+                client.subscribe("/topic/ocr-process/" + uniqueHash, (message) => {
+                const itemData = message.body;
+                console.log("Received message: ", itemData);
+                const parsedItems: ItemProps[] = [
+                    { name: "Pizza", cost: 20.00, shareable: true },
+                    { name: "Pasta", cost: 15.00, shareable: false },
+                ];
+                setItems(prev => [...prev, ...parsedItems]);
+            });
+            },
+            onStompError: (frame) => {
+                console.error("STOMP error:", frame);
+            },
+            });
+    
+            client.activate();
+            return () => {
+            client.deactivate();
+            };
+    }, []);
 
     return (
     <main className="max-w-2xl mx-auto p-6">
@@ -307,12 +348,10 @@ export default function CreateSessionPage() {
 
 
         <div> 
-            {/* TODO: Daniel w/ Stomp websocket
-            <ImadeUploader 
+            <ImageUploader 
                 onImageUpload={parseReceipt}
                 isProcessing={isLoading}
             />
-             */}
         </div>
 
         <hr className="border-t border-gray-900 my-8" />

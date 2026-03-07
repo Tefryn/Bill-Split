@@ -8,6 +8,7 @@ import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
 import java.util.Arrays;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,10 +20,12 @@ public class SessionService {
 
   private final SessionRepository sessionRepository;
   private final StringRedisTemplate redis;
+  private final SimpMessagingTemplate socket;
 
-  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis) {
+  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis, SimpMessagingTemplate socket) {
     this.sessionRepository = sessionRepository;
     this.redis = redis;
+    this.socket = socket;
   }
 
   public Optional<Session> getSessionById(Long sessionId) {
@@ -94,7 +97,7 @@ public class SessionService {
     return -1L;
   }
 
-    public Long unclaimItem(Long sessionId, Long itemId, String userEmail) {
+  public Long unclaimItem(Long sessionId, Long itemId, String userEmail) {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
@@ -120,6 +123,20 @@ public class SessionService {
       return user.getTotalCost();
     }
     return -1L;
+  }
+
+  public boolean queueImageForOCR(String imageBytes, String uniqueHash) {
+    
+    // push the work to redis queue for OCR processing here
+
+    System.out.println("Queuing image for OCR: " + imageBytes + ", uniqueHash: " + uniqueHash);
+
+    // you would call the websocket in the OCR process to send info back
+    // it's here just to make sure it works
+
+    socket.convertAndSend("/topic/ocr-process/" + uniqueHash, "OCR processing started for hash: " + uniqueHash);
+
+    return true;
   }
 
 }

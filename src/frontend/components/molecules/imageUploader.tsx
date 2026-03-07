@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import Dropzone from '@/components/atoms/dropzone';
 import Spinner from '@/components/atoms/spinner'
 
-interface ImageUploadAerProps {
+interface ImageUploaderProps {
   onImageUpload: (file: File) => void;
   isProcessing: boolean;
 }
 
-export default function ImageUploader({ onImageUpload, isProcessing }: ImageUploadAerProps) {
+export default function ImageUploader({ onImageUpload, isProcessing }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFile = (file: File) => {
