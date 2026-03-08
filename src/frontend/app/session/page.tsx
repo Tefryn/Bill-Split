@@ -168,7 +168,8 @@ export default function SessionView() {
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
+            } else if (result.data?.claimItem != false) {
+                console.log("shit");
                 setIsLoading(false);
                 return true;
             }
@@ -231,8 +232,7 @@ export default function SessionView() {
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
-                console.log(result.data.unclaimItem)
+            } else if (result.data?.unclaimItem != false) {
                 setIsLoading(false);
                 return true;
             }
