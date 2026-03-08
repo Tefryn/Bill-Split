@@ -169,7 +169,6 @@ export default function SessionView() {
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.claimItem != false) {
-                console.log("shit");
                 setIsLoading(false);
                 return true;
             }
