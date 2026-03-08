@@ -37,7 +37,7 @@ export default function CreateSessionPage() {
         if (!uniqueHash) return;
 
         const stompClient = new Client({
-            brokerURL: 'ws://localhost:8080/ws',
+            brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws` || `ws://localhost:8080/ws`,
             onConnect: () => {
                 console.log('STOMP connected, subscribing to /topic/receipt/' + uniqueHash);
                 stompClient.subscribe('/topic/receipt/' + uniqueHash, (message) => {
@@ -86,7 +86,7 @@ export default function CreateSessionPage() {
             return
         }
         e.preventDefault();
-        
+
         const mutation = `
             mutation CreateSession($input: CreateSessionInput!) {
                 createSession(input: $input) {
@@ -137,7 +137,7 @@ export default function CreateSessionPage() {
             });
 
             const result = await response.json();
-            
+
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.createSession) {
@@ -196,7 +196,7 @@ export default function CreateSessionPage() {
     useEffect(() => {
         const client = new Client({
             //brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`, // change back
-            brokerURL: `ws://localhost:8080/ws`,
+            brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws` || `ws://localhost:8080/ws`,
             onConnect: () => {
                 client.subscribe("/topic/ocr-process/" + uniqueHash, (message) => {
                     const itemData = message.body;

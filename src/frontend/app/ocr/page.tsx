@@ -8,7 +8,7 @@ import ImadeUploader from "@/components/molecules/imageUploader";
 export default function OCRPage() {
     const [errMessage, setErrMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const API_URL = "http://localhost:8080";
+    const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
     const uniqueHash = crypto.randomUUID(); //used for OCR websocket
 
     const router = useRouter();
