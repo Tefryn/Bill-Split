@@ -5,7 +5,7 @@ import { useUser } from "@/components/molecules/userContext";
 import Item from "@/types/item";
 import Session from "@/types/session";
 
-const API_URL = "http://localhost:8080";
+`http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
 
 export default function CreateFinalPage() {
     const [errMessage, setErrMessage] = useState("");
