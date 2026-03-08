@@ -1,5 +1,6 @@
 package com.bill_split.app.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -7,7 +8,6 @@ import com.bill_split.app.data.Item;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
 import com.bill_split.app.data.Session;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
@@ -18,6 +18,7 @@ import com.bill_split.app.graphql.SessionInput;
 @Service
 public class SessionService {
   private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
+  private static final String SESSION_CLAIM_EVENT_QUEUE = "session_claim";
 
   private final SessionRepository sessionRepository;
   private final RedisTemplate<String, byte[]> redis;
@@ -72,21 +73,37 @@ public class SessionService {
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
         return false;
       }
-      User user = optionalUser.get();
       Item item = optionalItem.get();
 
-      if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
+      if ((!item.getShareable() && item.getClaimedBy().isEmpty())|| item.getClaimedBy().contains(userEmail)) {
         return false;
       }
 
       List<String> claimedBy = item.getClaimedBy();
-
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
+
+      for (String email : claimedBy) {
+        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+        if (!optionalOtherUser.isPresent()) {
+          continue;
+        }
+        User claimedUser = optionalOtherUser.get();
+        BigDecimal itemTotalCost = item.getCost();
+        
+        BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
+        BigDecimal prevCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size()-1,1)));
+        if (email.equals(userEmail)) {
+            prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
+        }
+        BigDecimal costUpdate = newCost.subtract(prevCost);
+        System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
+        claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
+      }
       sessionRepository.save(session);
 
-      // update rest of users
-      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
+      // update users
+      redis.opsForList().rightPush(SESSION_CLAIM_EVENT_QUEUE, (sessionId + "::" + itemId).getBytes());
 
       return true;
     }
@@ -115,10 +132,25 @@ public class SessionService {
       user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
+      
+      for (String email : claimedBy) {
+        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
+        if (!optionalOtherUser.isPresent()) {
+          continue;
+        }
+        User claimedUser = optionalOtherUser.get();
+        BigDecimal itemTotalCost = item.getCost();
+        
+        BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
+        BigDecimal prevCost= itemTotalCost.divide((new BigDecimal(claimedBy.size()+1)));  
+        BigDecimal costUpdate = newCost.subtract(prevCost);
+        System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
+        claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
+      }
       sessionRepository.save(session);
 
-      // update rest of users
-      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
+      // update users
+      redis.opsForList().rightPush(SESSION_CLAIM_EVENT_QUEUE, (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
 
       return true;
     }

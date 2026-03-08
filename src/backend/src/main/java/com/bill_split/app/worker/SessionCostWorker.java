@@ -67,8 +67,6 @@ public class SessionCostWorker {
         String[] parts = event.split("::");
         Long sessionId = Long.parseLong(parts[0]);
         Long itemId = Long.parseLong(parts[1]);
-        String userEmail = parts[2];
-        String action = parts[3];
 
         Optional<Session> optionalSession = sessionRepository.findById(sessionId);
 
@@ -81,34 +79,12 @@ public class SessionCostWorker {
             for (String email : claimedBy) {
                 Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
                 User claimedUser = optionalOtherUser.get();
-                BigDecimal itemTotalCost = item.getCost();
-               
-                BigDecimal costUpdate;
-                BigDecimal newCost= itemTotalCost.divide(new BigDecimal(claimedBy.size()));
-                // calculate cost update
-                if (action.equals("claim")) {
-                    BigDecimal prevCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size()-1,1)));
-                    if (email.equals(userEmail)) {
-                        prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
-                    }
-                    costUpdate = newCost.subtract(prevCost);
-                    System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
-                }
-                else{
-                    BigDecimal prevCost= itemTotalCost.divide((new BigDecimal(claimedBy.size()+1)));  
-                    costUpdate = newCost.subtract( prevCost);
-                    System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
-                }
-
-                claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
 
                 // send change to frontend
                 String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
                 String message = claimedUser.getTotalCost().toString();
                 socket.convertAndSend(destination, message);
             }
-
-            sessionRepository.save(session);
         }
     }
 }
