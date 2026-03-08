@@ -9,6 +9,8 @@ import { useUser } from "@/components/molecules/userContext";
 import { useSearchParams } from 'next/navigation';
 import { ItemEditor } from "@/components/molecules/itemEditor";
 import { Client } from "@stomp/stompjs";
+import { ItemEditorSkeleton } from "@/components/molecules/itemEditorSkeleton";
+import { clear } from "console";
 
 
 interface ItemProps {
@@ -23,6 +25,7 @@ export default function CreateSessionPage() {
     const [sessionName, setSessionName] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [receiptLoading, setReceiptLoading] = useState(true);
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
     const [items, setItems] = useState<ItemProps[]>([]);
@@ -34,7 +37,10 @@ export default function CreateSessionPage() {
 
     // Subscribe to WebSocket for OCR results when uniqueHash is present
     useEffect(() => {
-        if (!uniqueHash) return;
+        if (!uniqueHash) {
+            setReceiptLoading(false);
+            return;
+        } 
 
         const stompClient = new Client({
             brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws` || `ws://localhost:8080/ws`,
@@ -67,6 +73,8 @@ export default function CreateSessionPage() {
                     } catch (err) {
                         console.error('Error parsing OCR WebSocket message:', err);
                     }
+                    setReceiptLoading(false);
+                    clearTimeout(timeoutId); // clear the timeout since we got a response
                 });
             },
             onStompError: (frame) => {
@@ -76,14 +84,31 @@ export default function CreateSessionPage() {
 
         stompClient.activate();
 
+        const timeoutId = setTimeout(() => {
+        if (receiptLoading) {
+            console.warn("OCR Request timed out after 5 seconds.");
+            setReceiptLoading(false);
+            setErrMessage("OCR took too long. Please enter items manually.");
+            setTimeout(() => setErrMessage(""), 5000);
+            
+            stompClient.deactivate(); 
+            }
+        }, 15000); // stop listening after 15 seconds
+
         return () => {
             stompClient.deactivate();
+            clearTimeout(timeoutId);
         };
     }, [uniqueHash]);
 
     const handleCreation = async (e: React.FormEvent) => {
         if (isLoading) {
             return
+        }
+        if (!sessionName || !userEmail) {
+            setErrMessage("Session name and email are required.");
+            setTimeout(() => setErrMessage(""), 3000);
+            return;
         }
         e.preventDefault();
 
@@ -193,32 +218,6 @@ export default function CreateSessionPage() {
         return tipValue;
     }
 
-    useEffect(() => {
-        const client = new Client({
-            //brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`, // change back
-            brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws` || `ws://localhost:8080/ws`,
-            onConnect: () => {
-                client.subscribe("/topic/ocr-process/" + uniqueHash, (message) => {
-                    const itemData = message.body;
-                    console.log("Received message: ", itemData);
-                    const parsedItems: ItemProps[] = [ // get real data from ocr
-                        { name: "Pizza", cost: 20.00, shareable: true },
-                        { name: "Pasta", cost: 15.00, shareable: false },
-                    ];
-                    setItems(prev => [...prev, ...parsedItems]);
-                });
-            },
-            onStompError: (frame) => {
-                console.error("STOMP error:", frame);
-            },
-        });
-
-        client.activate();
-        return () => {
-            client.deactivate();
-        };
-    }, []);
-
     return (
         <main className="max-w-2xl mx-auto p-6">
             <Header
@@ -263,6 +262,11 @@ export default function CreateSessionPage() {
                                 onDelete={handleDeleteItem}>
                             </ItemEditor>
                         ))}
+                        {receiptLoading && 
+                            Array(3).fill(0).map((_, index) => (
+                                <ItemEditorSkeleton key={index} />
+                            ))
+                        }
                     </ul>
                 </div>
 
