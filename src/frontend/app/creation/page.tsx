@@ -6,8 +6,8 @@ import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
 import { useUser } from "@/components/molecules/userContext";
-import ImadeUploader from "@/components/molecules/imageUploader";
-import { parse } from "path";
+import { useSearchParams } from 'next/navigation';
+
 
 interface ItemProps {
     name: string;
@@ -27,7 +27,8 @@ export default function CreateSessionPage() {
     const [items, setItems] = useState<ItemProps[]>([]);
 
     const API_URL = "http://localhost:8080";
-    const uniqueHash = crypto.randomUUID(); //used for OCR websocket
+    const searchParams = useSearchParams();
+    const uniqueHash = searchParams.get('uniqueHash'); // For Stomp Client
 
     const router = useRouter();
     
@@ -133,64 +134,6 @@ export default function CreateSessionPage() {
         return itemTotal() * (parseFloat(tip) / 100);
     }
 
-    const parseReceipt =  async (file: File) => {
-        // TODO: abort controller?
-        setIsLoading(true);
-        const mutation = `
-            mutation ParseReceipt($file: Upload!, $uniqueHash: String) {
-                parseReceipt(file: $file, uniqueHash: $uniqueHash)
-            }
-        `;
-
-        try {
-            // Use FormData to send multipart request per GraphQL multipart upload spec
-            const formData = new FormData();
-            
-            // Add operations field with the mutation and variables structure
-            const operations = {
-                query: mutation,
-                variables: {
-                    file: null, // Will be replaced by file upload
-                    uniqueHash: uniqueHash
-                }
-            };
-            formData.append('operations', JSON.stringify(operations));
-            
-            // Add map field to map file position to variable path
-            const map = {
-                '0': ['variables.file']
-            };
-            formData.append('map', JSON.stringify(map));
-            
-            // Add the actual file
-            formData.append('0', file);
-
-            const response = await fetch(`${API_URL}/graphql`, {
-                method: 'POST',
-                body: formData,
-            });
-            
-            const result = await response.json();
-            
-            if (result.errors) {
-                console.error(`GraphQL Error: ${result.errors[0].message}`);
-                setErrMessage(`Error: ${result.errors[0].message}`);
-                setTimeout(() => setErrMessage(""), 3000);
-            } else if (result.data?.parseReceipt) {
-                console.log(`Receipt uploaded successfully: ${result.data.parseReceipt.message}`);
-                // TODO: Listen on WebSocket for OCR results using uniqueHash
-            } else {
-                setErrMessage(result.data?.parseReceipt?.message || "Failed to parse receipt.");
-                setTimeout(() => setErrMessage(""), 3000);
-            }
-        } catch (err) {
-            console.error("Network error occurred.", err);
-            setErrMessage("Network error occurred.");
-            setTimeout(() => setErrMessage(""), 3000);
-        }
-        setIsLoading(false);
-    }
-
     return (
     <main className="max-w-2xl mx-auto p-6">
       <Header 
@@ -283,16 +226,6 @@ export default function CreateSessionPage() {
                     {isPercent ? "Percentage" : "Dollar Amount"}
                 </button>
             </div>
-        </div>
-
-
-        <div> 
-            {/* TODO: Daniel w/ Stomp websocket
-            <ImadeUploader 
-                onImageUpload={parseReceipt}
-                isProcessing={isLoading}
-            />
-             */}
         </div>
 
         <hr className="border-t border-gray-900 my-8" />
