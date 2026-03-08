@@ -67,15 +67,16 @@ public class SessionService {
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
       List<User> users = session.getUsers();
+      List<Item> items = session.getItems();
       
       boolean userRemoved = users.removeIf(n -> n.getEmail().equals(userEmail));
       
       if (userRemoved) {
         session.setUsers(users);
+
+        items.stream().filter(item -> item.getClaimedBy().contains(userEmail)).forEach(item -> unclaimItem(sessionId, item.getId(), userEmail));
         sessionRepository.save(session);
       }
-
-      checkBillFinalizable(sessionId);
       
       return userRemoved;
     }
@@ -111,7 +112,6 @@ public class SessionService {
       // update rest of users
       redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
 
-      checkBillFinalizable(sessionId);
       return true;
     }
     System.out.println("Session not found with id: " + sessionId);
@@ -137,7 +137,7 @@ public class SessionService {
 
       List<String> claimedBy = item.getClaimedBy();
       user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
-      System.out.println("Unclaimed total: "+user.getTotalCost());
+      System.out.println("Unclaimed total: "+ user.getTotalCost());
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
       sessionRepository.save(session);
@@ -145,30 +145,10 @@ public class SessionService {
       // update rest of users
       redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
 
-      checkBillFinalizable(sessionId);
       return true;
     }
     System.out.println("Session not found with id: " + sessionId);
     return false;
-  }
-
-  private void checkBillFinalizable(Long sessionId) {
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      List<User> users = session.getUsers();
-      BigDecimal expectedCost = session.getItems().stream().map(Item::getCost).reduce(BigDecimal.ZERO, BigDecimal::add);
-      BigDecimal totalCost = users.stream().map(User::getTotalCost).reduce(BigDecimal.ZERO, BigDecimal::add);
-      Boolean deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost().compareTo(BigDecimal.ZERO) == 0);
-
-      String destination = "/topic/session/" + Long.toString(sessionId);
-      Boolean billCanBeClosedOut = (!deadWeightUser && totalCost.compareTo(expectedCost) >= 0);
-      String status = billCanBeClosedOut ? "Closeable" : "Not Closeable";
-      String payload = "Bill status::" + status;
-
-      socket.convertAndSend(destination, payload);
-      System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
-    }
   }
 
   public Boolean parseReceipt(MultipartFile file, String uniqueHash) {

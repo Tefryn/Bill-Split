@@ -101,14 +101,38 @@ public class SessionCostWorker {
                 }
 
                 claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
-
+                System.out.println("User: " + claimedUser.getEmail() + ". New Cost: " + claimedUser.getTotalCost());
                 // send change to frontend
                 String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
                 String message = claimedUser.getTotalCost().toString();
                 socket.convertAndSend(destination, message);
             }
-
             sessionRepository.save(session);
+
+            System.out.println("check users");
+            for (User user: session.getUsers()) {
+                System.out.println("User: " + user.getEmail() + ". Cost: " + user.getTotalCost());
+            }
+            checkBillFinalizable(sessionId);
         }
     }
+
+    private void checkBillFinalizable(Long sessionId) {
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            List<User> users = session.getUsers();
+            BigDecimal expectedCost = session.getItems().stream().map(Item::getCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalCost = users.stream().map(User::getTotalCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+            Boolean deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost().compareTo(BigDecimal.ZERO) == 0);
+
+            String destination = "/topic/session/" + Long.toString(sessionId);
+            Boolean billCanBeClosedOut = (!deadWeightUser && totalCost.compareTo(expectedCost) >= 0);
+            String status = billCanBeClosedOut ? "Closeable" : "Not Closeable";
+            String payload = "Bill status::" + status;
+
+            socket.convertAndSend(destination, payload);
+            System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
+        }
+  }
 }
