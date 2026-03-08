@@ -120,7 +120,7 @@ public class SessionService {
     return -1L;
   }
 
-  public Boolean parseReceipt(MultipartFile file, String returnHash) {
+  public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
     try {
       // Validate file
       if (file == null || file.isEmpty()) {
@@ -139,7 +139,7 @@ public class SessionService {
       byte[] imageBytes = file.getBytes();
       String mime = file.getContentType();
       ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
-          .setUniqueHash(returnHash)
+          .setUniqueHash(uniqueHash)
           .setImageData(ByteString.copyFrom(imageBytes))
           .setMime(mime)
           .build();
@@ -147,7 +147,7 @@ public class SessionService {
       // Queue the serialized protobuf for OCR processing
       redis.opsForList().rightPush(PARSE_RECEIPT_EVENT_QUEUE, event.toByteArray());
 
-      System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + "with hash: " + returnHash);
+      System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + " with hash: " + uniqueHash);
       return true;
 
     } catch (Exception e) {

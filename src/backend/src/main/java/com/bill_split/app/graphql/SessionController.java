@@ -47,7 +47,7 @@ public class SessionController {
     }
 
     @MutationMapping
-    public Boolean parseReceipt(@Argument MultipartFile file, @Argument String returnHash) {
-        return sessionService.parseReceipt(file, returnHash);
+    public Boolean parseReceipt(@Argument MultipartFile file, @Argument String uniqueHash) {
+        return sessionService.parseReceipt(file, uniqueHash);
     }
 }

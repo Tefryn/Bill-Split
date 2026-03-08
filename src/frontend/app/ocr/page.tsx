@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import ImadeUploader from "@/components/molecules/imageUploader";
 
-export default function CreateSessionPage() {
+export default function OCRPage() {
     const [errMessage, setErrMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const API_URL = "http://localhost:8080";
@@ -56,10 +56,10 @@ export default function CreateSessionPage() {
                 setErrMessage(`Error: ${result.errors[0].message}`);
                 setTimeout(() => setErrMessage(""), 3000);
             } else if (result.data?.parseReceipt) {
-                console.log(`Receipt uploaded successfully: ${result.data.parseReceipt.message}`);
+                console.log('Receipt uploaded successfully');
                 router.push(`/creation?uniqueHash=`+ uniqueHash);
             } else {
-                setErrMessage(result.data?.parseReceipt?.message || "Failed to parse receipt.");
+                setErrMessage("Failed to parse receipt.");
                 setTimeout(() => setErrMessage(""), 3000);
             }
         } catch (err) {
