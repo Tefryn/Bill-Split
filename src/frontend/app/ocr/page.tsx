@@ -16,7 +16,7 @@ export default function OCRPage() {
     const parseReceipt =  async (file: File) => {
         setIsLoading(true);
         const mutation = `
-            mutation ParseReceipt($file: Upload!, $uniqueHash: String) {
+            mutation ParseReceipt($file: Upload!, $uniqueHash: String!) {
                 parseReceipt(file: $file, uniqueHash: $uniqueHash)
             }
         `;
