@@ -86,17 +86,13 @@ public class SessionService {
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
 
-      for (String email : claimedBy) {
-        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
-        if (!optionalOtherUser.isPresent()) {
-          continue;
-        }
-        User claimedUser = optionalOtherUser.get();
+      List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
+      for (User claimedUser : users) {
         BigDecimal itemTotalCost = item.getCost();
         
         BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
         BigDecimal prevCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size()-1,1)));
-        if (email.equals(userEmail)) {
+        if (claimedUser.getEmail().equals(userEmail)) {
             prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
         }
         BigDecimal costUpdate = newCost.subtract(prevCost);
@@ -104,7 +100,7 @@ public class SessionService {
         claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
 
         // send change to frontend
-        String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
+        String destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
         String message = claimedUser.getTotalCost().toString();
         socket.convertAndSend(destination, message);
       }
@@ -141,12 +137,8 @@ public class SessionService {
       String message = user.getTotalCost().toString();
       socket.convertAndSend(destination, message);
       
-      for (String email : claimedBy) {
-        Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
-        if (!optionalOtherUser.isPresent()) {
-          continue;
-        }
-        User claimedUser = optionalOtherUser.get();
+      List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
+      for (User claimedUser : users) {
         BigDecimal itemTotalCost = item.getCost();
         
         BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
@@ -156,7 +148,7 @@ public class SessionService {
         claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
 
         // send change to frontend
-        destination = "/topic/session/" + sessionId + "/cost_update/" + email;
+        destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
         message = claimedUser.getTotalCost().toString();
         socket.convertAndSend(destination, message);
       }
