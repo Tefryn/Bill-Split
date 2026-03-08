@@ -7,7 +7,8 @@ import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
 import { useUser } from "@/components/molecules/userContext";
 import { useSearchParams } from 'next/navigation';
-import { Client } from '@stomp/stompjs';
+import { ItemEditor } from "@/components/molecules/itemEditor";
+import { Client } from "@stomp/stompjs";
 
 
 interface ItemProps {
@@ -151,6 +152,20 @@ export default function CreateSessionPage() {
         setIsLoading(false);
     };
 
+    const handleEditItem = (index: number, name: string, cost: number, shareable: boolean) => {
+        console.log(`Editing item at index ${index} with new values: ${name}, ${cost}, ${shareable}`);
+        if (name === "" || isNaN(cost) || cost < 0) {
+            setErrMessage("Invalid item details. Please check your inputs.");
+            setTimeout(() => setErrMessage(""), 3000);
+            return;
+        }
+        setItems(items.map((item, i) => i === index ? { name, cost, shareable } : item));
+    }
+
+    const handleDeleteItem = (index: number) => {
+        setItems(items.filter((_, i) => i !== index));
+    }
+
     const addItem = (name: string, cost: number, shareable: boolean) => {
         const newItem = {name, cost, shareable};
         setItems([newItem, ...items]);
@@ -179,6 +194,32 @@ export default function CreateSessionPage() {
         }
         return itemTotal() * (parseFloat(tip) / 100);
     }
+
+    useEffect(() => {
+        const client = new Client({
+        //brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`, // change back
+        brokerURL: `ws://localhost:8080/ws`,
+            onConnect: () => {
+                client.subscribe("/topic/ocr-process/" + uniqueHash, (message) => {
+                const itemData = message.body;
+                console.log("Received message: ", itemData);
+                const parsedItems: ItemProps[] = [ // get real data from ocr
+                    { name: "Pizza", cost: 20.00, shareable: true },
+                    { name: "Pasta", cost: 15.00, shareable: false },
+                ];
+                setItems(prev => [...prev, ...parsedItems]);
+            });
+            },
+            onStompError: (frame) => {
+                console.error("STOMP error:", frame);
+            },
+            });
+
+        client.activate();
+        return () => {
+        client.deactivate();
+        };
+    }, []);
 
     return (
     <main className="max-w-2xl mx-auto p-6">
@@ -214,10 +255,15 @@ export default function CreateSessionPage() {
         <div>
             <ul className="space-y-2">
                 {items.map((item, index) => (
-                    <li key={index} className="flex justify-between text-black items-center bg-black-50 p-3 rounded-md border">
-                        <span>{item.name} - {item.cost.toFixed(2)}</span>
-                        <span className="text-sm font-medium">{item.shareable ? "Shared" : "Not Shared"}</span>
-                    </li>
+                    <ItemEditor 
+                        key={index}
+                        id={index}
+                        name={item.name} 
+                        cost={(item.cost).toString()} 
+                        shareable={item.shareable} 
+                        onEdit={handleEditItem}
+                        onDelete={handleDeleteItem}>    
+                    </ItemEditor>
                 ))}
             </ul>
         </div>
