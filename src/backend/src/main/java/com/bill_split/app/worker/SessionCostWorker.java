@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 
+import javax.annotation.PreDestroy;
+
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,6 +25,8 @@ public class SessionCostWorker {
     private final SessionRepository sessionRepository;
     private final RedisTemplate<String, byte[]> redis;
     private final SimpMessagingTemplate socket;
+    private volatile boolean running = true;
+    private Thread workerThread;
 
     public SessionCostWorker(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
         this.sessionRepository = sessionRepository;
@@ -32,10 +36,10 @@ public class SessionCostWorker {
 
     @EventListener(ApplicationReadyEvent.class)
     public void startWorker() {
-        new Thread(() -> {
+        workerThread = new Thread(() -> {
             System.out
                 .println("SessionCostWorker.java: Session worker started. Listening for session_claim events");
-            while (true) {
+            while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] buffer = redis.opsForList().leftPop("session_claim", Duration.ofSeconds(30));
                     if (buffer != null) {
@@ -48,6 +52,9 @@ public class SessionCostWorker {
                     }
                     // if null, just loop and wait again
                 } catch (Exception e) {
+                    if (!running) {
+                        break;
+                    }
                     if (e.getMessage() != null && e.getMessage().contains("timed out")) {
                         // ignore timeout, just loop again
                         continue;
@@ -56,7 +63,23 @@ public class SessionCostWorker {
                     e.printStackTrace();
                 }
             }
-        }).start();
+            System.out.println("SessionCostWorker.java: Session worker stopped.");
+        });
+        workerThread.setDaemon(true);
+        workerThread.start();
+    }
+
+    @PreDestroy
+    public void stopWorker() {
+        running = false;
+        if (workerThread != null) {
+            workerThread.interrupt();
+            try {
+                workerThread.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private void recalculateCosts(String event) {
