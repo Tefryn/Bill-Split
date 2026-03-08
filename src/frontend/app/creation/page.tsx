@@ -105,6 +105,11 @@ export default function CreateSessionPage() {
         if (isLoading) {
             return
         }
+        if (!sessionName || !userEmail) {
+            setErrMessage("Session name and email are required.");
+            setTimeout(() => setErrMessage(""), 3000);
+            return;
+        }
         e.preventDefault();
 
         const mutation = `
