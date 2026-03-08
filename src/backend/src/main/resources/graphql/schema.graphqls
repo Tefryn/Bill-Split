@@ -4,11 +4,12 @@ type Query {
 
 type Mutation {
   createSession(input: CreateSessionInput!): Session!
-  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!
   joinSession(sessionId: ID!, userEmail: String!): Boolean
+  leaveSession(sessionId: ID!, userEmail: String!): Boolean
+  parseReceipt(file: Upload!, uniqueHash: String): Boolean!
+  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!
   unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!
   finalizeSession(sessionId: ID!): Boolean!
-  leaveSession(sessionId: ID!, userEmail: String!): Boolean
 } 
 
 type Session {
@@ -16,8 +17,8 @@ type Session {
   name: String!
   items: [Item!]!
   users: [User]!
-  tip: Int!
-  tax: Int!
+  tip: String!
+  tax: String!
 }
 
 type Item {
@@ -36,8 +37,8 @@ type User {
 input CreateSessionInput {
   items: [ItemInput!]!
   users: [UserInput!]!
-  tax: Int!
-  tip: Int!
+  tax: String!
+  tip: String!
   name: String!
 }
 

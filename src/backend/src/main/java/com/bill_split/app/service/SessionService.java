@@ -14,16 +14,20 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.redis.core.RedisTemplate;
+import com.google.protobuf.ByteString;
+import com.bill_split.app.grpc.ParseReceiptEvent;
+
 @Service
 public class SessionService {
-  // TODO: Implement OCR
-  //private static final String SESSION_OCR_EVENT_QUEUE = "session_ocr_event_queue";
+  private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
   private final SessionRepository sessionRepository;
-  private final StringRedisTemplate redis;
+  private final RedisTemplate<String, byte[]> redis;
   private final SimpMessagingTemplate socket;
 
-  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis, SimpMessagingTemplate socket) {
+  public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
     this.sessionRepository = sessionRepository;
     this.redis = redis;
     this.socket = socket;
@@ -37,11 +41,6 @@ public class SessionService {
     System.out.print("Creating session with name: " + input.getItems());
     Session session = sessionRepository.save(new Session(input));
 
-    // String event = session.getId() + "::" + content;
-    // redis.opsForList().rightPush(SESSION_OCR_EVENT_QUEUE, event); For OCR
-
-    // System.out.println(" queued OCR compilation job for session: " + session.getId());
-
     return session;
   }
 
@@ -50,18 +49,16 @@ public class SessionService {
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
       List<User> users = session.getUsers();
-      
+
       User newUser = new User();
       newUser.setEmail(userEmail);
-      
-      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { // if user is not already in session
+
+      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { 
         users.add(newUser);
         session.setUsers(users);
         sessionRepository.save(session);
       }
 
-      checkBillFinalizable(sessionId);
-      
       return true;
     }
     return false;
@@ -92,7 +89,8 @@ public class SessionService {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
-      System.out.println("Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
+      System.out.println(
+          "Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
       Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
       Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
@@ -108,10 +106,13 @@ public class SessionService {
       }
 
       List<String> claimedBy = item.getClaimedBy();
+
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost().add(item.getCost()));
       sessionRepository.save(session);
+
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
 
       checkBillFinalizable(sessionId);
       return true;
@@ -138,10 +139,13 @@ public class SessionService {
       }
 
       List<String> claimedBy = item.getClaimedBy();
+      user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost().subtract(item.getCost()));
       sessionRepository.save(session);
+
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
 
       checkBillFinalizable(sessionId);
       return true;
@@ -159,17 +163,46 @@ public class SessionService {
       BigDecimal totalCost = users.stream().map(User::getTotalCost).reduce(BigDecimal.ZERO, BigDecimal::add);
       Boolean deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost().compareTo(BigDecimal.ZERO) == 0);
 
-      // BigDecimal expectedCost = session.getItems().stream().mapToBigDecimal(Item::getCost).sum();
-      // BigDecimal totalCost = users.stream().mapToBigDecimal(User::getTotalCost).getTotalCost().sum();
-      // .map(Item::getCost).reduce(BigDecimal.ZERO, BigDecimal::add);
-
       String destination = "/topic/session/" + Long.toString(sessionId);
       Boolean billCanBeClosedOut = (!deadWeightUser && totalCost.compareTo(expectedCost) >= 0);
       String status = billCanBeClosedOut ? "Closeable" : "Not Closeable";
       String payload = "Bill status::" + status;
+    }
+  }
 
-      socket.convertAndSend(destination, payload);
-      System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
+  public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
+    try {
+      // Validate file
+      if (file == null || file.isEmpty()) {
+        System.out.println("Empty file");
+        return false;
+      }
+
+      // Validate it's an image
+      String contentType = file.getContentType();
+      if (contentType == null || !contentType.startsWith("image/")) {
+        System.out.println("Not an image: " + contentType);
+        return false;
+      }
+
+      // Get file bytes and create protobuf event
+      byte[] imageBytes = file.getBytes();
+      ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
+          .setUniqueHash(uniqueHash)
+          .setImageData(ByteString.copyFrom(imageBytes))
+          .setMime(contentType)
+          .build();
+
+      // Queue the serialized protobuf for OCR processing
+      redis.opsForList().rightPush(PARSE_RECEIPT_EVENT_QUEUE, event.toByteArray());
+
+      System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + " with hash: " + uniqueHash);
+      return true;
+
+    } catch (Exception e) {
+        System.err.println("Error processing receipt: " + e.getMessage());
+        e.printStackTrace();
+        return false;
     }
   }
 

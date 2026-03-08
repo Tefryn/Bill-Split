@@ -5,19 +5,18 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/organisms/header";
 import { ItemDisplay } from "@/components/molecules/itemDisplay";
-import FinalizeButton from "@/components/molecules/finalizeButton";
+import FinalizeButton from "@/components/molecules/finalizeButton"
 import User from "@/types/user";
 import Item from "@/types/item";
 import Session from "@/types/session";
-
-
+import { Client } from "@stomp/stompjs";
 
 export default function SessionView() {
-    const [userTotal, setUserTotal] = useState<string>("0.00");
+    const [userTotal, setUserTotal] = useState(0);
     const [session, setSession] = useState<Session>();
     const [isLoading, setIsLoading] = useState<boolean>();
     const [errMessage, setErrMessage] = useState<string>("");
-    const API_URL = "http://localhost:8080";
+    const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
     const { setUser } = useUser();
     const { email: userEmail, sessionId: sessionId } = useUser();
 
@@ -104,6 +103,27 @@ export default function SessionView() {
         };
         loadSession();
     }, [sessionId, fetchSession, userEmail]);
+
+    useEffect(() => {
+        const client = new Client({
+        brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
+        onConnect: () => {
+            client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
+            const newCost = message.body;
+            console.log("Received message:", message.body);
+            setUserTotal(parseFloat(newCost));
+        });
+        },
+        onStompError: (frame) => {
+            console.error("STOMP error:", frame);
+        },
+        });
+
+        client.activate();
+        return () => {
+        client.deactivate();
+        };
+    }, []);
     
     const handleClaim = async (item: Item) => {
         console.log('claim');
@@ -114,7 +134,18 @@ export default function SessionView() {
         setIsLoading(true);
         // optimistic ui
         const oldUserTotal = userTotal
-        setUserTotal(oldUserTotal + parseFloat(item.cost));
+        // if the user's already in the claimedBy list, then item.cost is accurate
+        // otherwise, undo split and resplit with one extra person
+        let costUpdate: number;
+        const itemCost = parseFloat(item.cost);
+        if (item.claimedBy.length === 0)
+        { costUpdate = itemCost; }
+        else if (item.claimedBy.includes(userEmail)) 
+        { costUpdate = itemCost / (item.claimedBy.length); }
+        else
+        { costUpdate = itemCost / (item.claimedBy.length + 1); }
+
+        setUserTotal(oldUserTotal + costUpdate);
 
         const mutation = `
             mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -139,10 +170,8 @@ export default function SessionView() {
             const result = await response.json();
 
             if (result.errors) {
-                console.error(`GraphQL Error: ${result.errors[0].message}`)
-            } else if (result.data?.claimItem == null) {
-                console.error("Error: Failed to claim item.");
-            } else {
+                console.error(`GraphQL Error: ${result.errors[0].message}`);
+            } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
                 setIsLoading(false);
                 return true;
             }
@@ -164,8 +193,20 @@ export default function SessionView() {
 
         setIsLoading(true);
         // optimistic ui
-        const oldUserTotal = userTotal
-        setUserTotal((parseFloat(oldUserTotal) - parseFloat(item.cost)).toString());
+        const oldUserTotal = userTotal;
+
+        // if the user's already in the claimedBy list, then item.cost is accurate
+        // otherwise, undo split and resplit with one extra person
+        let costUpdate: number;
+        const itemCost = parseFloat(item.cost);
+        if (item.claimedBy.length === 0)
+        { costUpdate = itemCost; }
+        else if (item.claimedBy.includes(userEmail)) 
+        { costUpdate = itemCost / (item.claimedBy.length); }
+        else
+        { costUpdate = itemCost / (item.claimedBy.length + 1); }
+
+        setUserTotal(oldUserTotal - costUpdate);
 
         const mutation = `
             mutation UnclaimItem($sessionId: ID!, $itemId: ID!, $userEmail: String!) {
@@ -193,17 +234,17 @@ export default function SessionView() {
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.unclaimItem == null) {
-                setErrMessage("Failed to unclaim item. Please try again.");
-                setTimeout(() => setErrMessage(""), 3000)
-                setUserTotal(oldUserTotal); // revert ui
-            } else {
+            } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
+                console.log(result.data.unclaimItem)
                 setIsLoading(false);
                 return true;
             }
         } catch (err) {
             console.error("Network error occurred.", err);
         }
+        setErrMessage("Failed to unclaim item. Please try again.");
+        setTimeout(() => setErrMessage(""), 3000)
+        setUserTotal(oldUserTotal); // revert ui
         setIsLoading(false);
         return false;
     }
@@ -268,7 +309,7 @@ export default function SessionView() {
         return (
             <main className="max-w-2xl mx-auto p-6">
                 <Header 
-                    title="Group View" 
+                    title="Session View" 
                     subtitle=""
                     showBackButton 
                     backHref="/" 
@@ -303,9 +344,6 @@ export default function SessionView() {
         );
     }
 
-    console.log('userTotal Value:', userTotal);
-    console.log('userTotal Type:', typeof userTotal);
-
     return (
     <main className="max-w-2xl mx-auto p-6">
       <Header 
@@ -321,8 +359,8 @@ export default function SessionView() {
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
-            <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${parseFloat(userTotal).toFixed(2)}</h2>
+              <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
+              <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${userTotal.toFixed(2)}</h2>
         </div>
 
         <div>
@@ -375,15 +413,6 @@ export default function SessionView() {
                 Leave Session
             </button>
         </div>
-
-        {/* <div>
-            <button 
-                onClick = {() => console.log(JSON.stringify(session))}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
-            >
-                check session (debug)
-            </button>
-        </div> */}
       </section>
     </main>
   );

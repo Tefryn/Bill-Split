@@ -18,19 +18,19 @@ public class Session {
   @Column(name = "name")
   private String name;
 
-  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
   @JoinColumn(name = "session_id")
   private List<Item> items;
 
-  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
   @JoinColumn(name = "session_id")
   private List<User> users; 
 
   @Column(name = "tip")
-  private Long tip;
+  private String tip;
 
   @Column(name = "tax")
-  private Long tax;
+  private String tax;
 
   public Session() {
   }
@@ -76,19 +76,19 @@ public class Session {
     this.users = users;
   }
 
-  public Long getTip() {
+  public String getTip() {
     return tip;
   }
 
-  public void setTip(Long tip) {
+  public void setTip(String tip) {
     this.tip = tip;
   }
 
-    public Long getTax() {
+    public String getTax() {
     return tax;
   }
 
-  public void setTax(Long tax) {
+  public void setTax(String tax) {
     this.tax = tax;
   }
 }

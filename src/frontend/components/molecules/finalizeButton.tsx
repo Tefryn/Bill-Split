@@ -10,7 +10,7 @@ const API_URL = "http://localhost:8080";
 export default function FinalizeButton() {
     const { sessionId: sessionId } = useUser();
     const [isFinalizable, setIsFinalizable] = useState<boolean>(false);
-    const [errMessage, setErrMessage] = useState<String>("");
+    const [errMessage, setErrMessage] = useState<string>("");
     const router = useRouter();
 
     useEffect(() => {        
@@ -44,7 +44,7 @@ export default function FinalizeButton() {
                 stompClient.deactivate(); 
             }
         };
-    }, [sessionId]); 
+    }, [sessionId, router]); 
 
     const handleFinalize = async () => {
         const mutation = `
