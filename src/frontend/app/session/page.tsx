@@ -116,6 +116,19 @@ export default function SessionView() {
         },
         });
 
+        const claimClient = new Client({
+        brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
+        onConnect: () => {
+            client.subscribe("/topic/session/" + sessionId + "/newClaim", (message) => {
+            const newCost = message.body;
+            console.log("Received message:", message.body);
+        });
+        },
+        onStompError: (frame) => {
+            console.error("STOMP error:", frame);
+        },
+        });
+
         client.activate();
         return () => {
         client.deactivate();
