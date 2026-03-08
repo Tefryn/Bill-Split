@@ -1,10 +1,10 @@
 package com.bill_split.app.worker;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 
 import javax.annotation.PreDestroy;
 
@@ -38,17 +38,16 @@ public class SessionCostWorker {
     public void startWorker() {
         workerThread = new Thread(() -> {
             System.out
-                .println("SessionCostWorker.java: Session worker started. Listening for session_claim events");
+                    .println("SessionCostWorker.java: Session worker started. Listening for session_claim events");
             while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] buffer = redis.opsForList().leftPop("session_claim", Duration.ofSeconds(30));
                     if (buffer != null) {
                         String event = new String(buffer, StandardCharsets.UTF_8);
 
-                        if (event != null) {
-                            System.out.println("SessionCostWorker.java: Received event: " + event);
-                            recalculateCosts(event);
-                        }
+                        System.out.println("SessionCostWorker.java: Received event: " + event);
+                        recalculateCosts(event);
+
                     }
                     // if null, just loop and wait again
                 } catch (Exception e) {
@@ -105,21 +104,20 @@ public class SessionCostWorker {
                 Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
                 User claimedUser = optionalOtherUser.get();
                 BigDecimal itemTotalCost = item.getCost();
-               
+
                 BigDecimal costUpdate;
-                BigDecimal newCost= itemTotalCost.divide(new BigDecimal(claimedBy.size()));
+                BigDecimal newCost = itemTotalCost.divide(new BigDecimal(claimedBy.size()));
                 // calculate cost update
                 if (action.equals("claim")) {
-                    BigDecimal prevCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size()-1,1)));
+                    BigDecimal prevCost = itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size() - 1, 1)));
                     if (email.equals(userEmail)) {
                         prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
                     }
                     costUpdate = newCost.subtract(prevCost);
                     System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
-                }
-                else{
-                    BigDecimal prevCost= itemTotalCost.divide((new BigDecimal(claimedBy.size()+1)));  
-                    costUpdate = newCost.subtract( prevCost);
+                } else {
+                    BigDecimal prevCost = itemTotalCost.divide((new BigDecimal(claimedBy.size() + 1)));
+                    costUpdate = newCost.subtract(prevCost);
                     System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
                 }
 
