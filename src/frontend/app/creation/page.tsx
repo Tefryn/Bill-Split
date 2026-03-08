@@ -9,6 +9,7 @@ import { useUser } from "@/components/molecules/userContext";
 import { useSearchParams } from 'next/navigation';
 import { ItemEditor } from "@/components/molecules/itemEditor";
 import { Client } from "@stomp/stompjs";
+import { ItemEditorSkeleton } from "@/components/molecules/itemEditorSkeleton";
 
 
 interface ItemProps {
@@ -23,6 +24,7 @@ export default function CreateSessionPage() {
     const [sessionName, setSessionName] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [receiptLoading, setReceiptLoading] = useState(true);
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
     const [items, setItems] = useState<ItemProps[]>([]);
@@ -34,7 +36,10 @@ export default function CreateSessionPage() {
 
     // Subscribe to WebSocket for OCR results when uniqueHash is present
     useEffect(() => {
-        if (!uniqueHash) return;
+        if (!uniqueHash) {
+            setReceiptLoading(false);
+            return;
+        } 
 
         const stompClient = new Client({
             brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws` || `ws://localhost:8080/ws`,
@@ -67,6 +72,7 @@ export default function CreateSessionPage() {
                     } catch (err) {
                         console.error('Error parsing OCR WebSocket message:', err);
                     }
+                    setReceiptLoading(false);
                 });
             },
             onStompError: (frame) => {
@@ -76,8 +82,20 @@ export default function CreateSessionPage() {
 
         stompClient.activate();
 
+        const timeoutId = setTimeout(() => {
+        if (receiptLoading) {
+            console.warn("OCR Request timed out after 5 seconds.");
+            setReceiptLoading(false);
+            setErrMessage("OCR took too long. Please enter items manually.");
+            setTimeout(() => setErrMessage(""), 5000);
+            
+            stompClient.deactivate(); 
+            }
+        }, 5000); // stop listening after 5 seconds
+
         return () => {
             stompClient.deactivate();
+            clearTimeout(timeoutId);
         };
     }, [uniqueHash]);
 
@@ -237,6 +255,11 @@ export default function CreateSessionPage() {
                                 onDelete={handleDeleteItem}>
                             </ItemEditor>
                         ))}
+                        {receiptLoading && 
+                            Array(3).fill(0).map((_, index) => (
+                                <ItemEditorSkeleton key={index} />
+                            ))
+                        }
                     </ul>
                 </div>
 
