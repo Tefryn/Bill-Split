@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import { ItemEditor } from "@/components/molecules/itemEditor";
 import { Client } from "@stomp/stompjs";
 import { ItemEditorSkeleton } from "@/components/molecules/itemEditorSkeleton";
+import { clear } from "console";
 
 
 interface ItemProps {
@@ -73,6 +74,7 @@ export default function CreateSessionPage() {
                         console.error('Error parsing OCR WebSocket message:', err);
                     }
                     setReceiptLoading(false);
+                    clearTimeout(timeoutId); // Clear the timeout since we got a response
                 });
             },
             onStompError: (frame) => {
