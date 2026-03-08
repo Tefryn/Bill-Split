@@ -187,12 +187,13 @@ public class SessionService {
     }
   }
 
-  public void finalizeSession(Long sessionId) {
+  public Boolean finalizeSession(Long sessionId) {
     String destination = "/topic/session/" + Long.toString(sessionId);
     String payload = "Bill status::Finished";
 
     socket.convertAndSend(destination, payload);
     System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
+    return true;
   }
 }
 

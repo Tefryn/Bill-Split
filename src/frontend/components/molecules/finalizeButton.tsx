@@ -52,20 +52,20 @@ export default function FinalizeButton() {
                 finalizeSession(sessionId: $sessionId)
             }
         `;
-
-        const response = await fetch(`${API_URL}/graphql`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                query: mutation,
-                variables: { 
-                    input: sessionId
-                }, 
-            }),
-        });
         try {
+            const response = await fetch(`${API_URL}/graphql`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: mutation,
+                    variables: { 
+                        sessionId: sessionId
+                    }, 
+                }),
+            });
+
             const result = await response.json();
             if (!result.data?.finalizeSession) {
                 setErrMessage("Finalize failed");

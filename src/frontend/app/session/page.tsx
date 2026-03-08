@@ -255,12 +255,6 @@ export default function SessionView() {
         }
         e.preventDefault();
 
-        const itemsToUnclaim = session?.items.filter((item) => item.claimedBy.includes(userEmail)) || [];
-        for (const item of itemsToUnclaim) {
-            await handleUnclaim(item);
-        }
-
-
         const mutation = `
             mutation LeaveSession($sessionId: ID!, $userEmail: String!) {
                 leaveSession(sessionId: $sessionId, userEmail: $userEmail)

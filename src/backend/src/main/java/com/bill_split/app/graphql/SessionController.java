@@ -53,7 +53,7 @@ public class SessionController {
     }
 
     @MutationMapping
-    public void finalizeSession(@Argument Long sessionId) {
-        sessionService.finalizeSession(sessionId);
+    public Boolean finalizeSession(@Argument Long sessionId) {
+        return sessionService.finalizeSession(sessionId);
     }
 }
