@@ -74,7 +74,7 @@ export default function CreateSessionPage() {
                         console.error('Error parsing OCR WebSocket message:', err);
                     }
                     setReceiptLoading(false);
-                    clearTimeout(timeoutId); // Clear the timeout since we got a response
+                    clearTimeout(timeoutId); // clear the timeout since we got a response
                 });
             },
             onStompError: (frame) => {
@@ -93,7 +93,7 @@ export default function CreateSessionPage() {
             
             stompClient.deactivate(); 
             }
-        }, 5000); // stop listening after 5 seconds
+        }, 15000); // stop listening after 15 seconds
 
         return () => {
             stompClient.deactivate();
