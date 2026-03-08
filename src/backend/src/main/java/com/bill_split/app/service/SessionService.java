@@ -81,6 +81,9 @@ public class SessionService {
       if ((!item.getShareable() && !item.getClaimedBy().isEmpty())|| item.getClaimedBy().contains(userEmail)) {
         return false;
       }
+      String claimDestination = "/topic/session/" + sessionId + "/new_claim";
+      String claimMessage = item.getId() + "::" + userEmail;
+      socket.convertAndSend(claimDestination, claimMessage);
 
       List<String> claimedBy = item.getClaimedBy();
       claimedBy.add(userEmail);
@@ -128,6 +131,10 @@ public class SessionService {
       if (!item.getClaimedBy().contains(userEmail)) {
         return false;
       }
+
+      String unclaimDestination = "/topic/session/" + sessionId + "/new_unclaim";
+      String unclaimMessage = item.getId() + "::" + userEmail;
+      socket.convertAndSend(unclaimDestination, unclaimMessage);
 
       List<String> claimedBy = item.getClaimedBy();
       user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));

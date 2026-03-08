@@ -106,34 +106,53 @@ export default function SessionView() {
         brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
         onConnect: () => {
             client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
-            const newCost = message.body;
-            console.log("Received message:", message.body);
-            setUserTotal(parseFloat(newCost));
-        });
+                const newCost = message.body;
+                console.log("Received message:", message.body);
+                setUserTotal(parseFloat(newCost));
+            });
+            client.subscribe("/topic/session/" + sessionId + "/new_claim", (message) => {
+                const claimInfo = message.body;
+                console.log("Received message:", message.body);
+                const [itemId, claimer] = claimInfo.split("::");
+                setSession((prevSession) => {
+                if (!prevSession) return prevSession;
+                const updatedItems = prevSession.items.map((item) => {
+                    if ((item.id).toString() === itemId && !item.claimedBy.includes(claimer)) {
+                        return { ...item, claimedBy: [...item.claimedBy, claimer] };
+                    }
+                    return item;
+                });
+                return { ...prevSession, items: updatedItems };
+            });
+            });
+            client.subscribe("/topic/session/" + sessionId + "/new_unclaim", (message) => {
+                const unclaimInfo = message.body;
+                console.log("Received message:", message.body);
+                const [itemId, unclaimer] = unclaimInfo.split("::");
+                setSession((prevSession) => {
+                    if (!prevSession) return prevSession;
+                    const updatedItems = prevSession.items.map((item) => {
+                        if ((item.id).toString() === itemId) {
+                            return { ...item, claimedBy: item.claimedBy.filter((email) => email !== unclaimer) };
+                        }
+                        return item;
+                    });
+                    return { ...prevSession, items: updatedItems };
+                });
+            });
         },
         onStompError: (frame) => {
             console.error("STOMP error:", frame);
         },
         });
 
-        const claimClient = new Client({
-        brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
-        onConnect: () => {
-            client.subscribe("/topic/session/" + sessionId + "/newClaim", (message) => {
-            const newCost = message.body;
-            console.log("Received message:", message.body);
-        });
-        },
-        onStompError: (frame) => {
-            console.error("STOMP error:", frame);
-        },
-        });
+        
 
         client.activate();
         return () => {
         client.deactivate();
         };
-    }, []);
+    }, [sessionId, userEmail]);
     
     const handleClaim = async (item: Item) => {
         console.log('claim');
