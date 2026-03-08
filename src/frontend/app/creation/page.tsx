@@ -25,7 +25,6 @@ export default function CreateSessionPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
-    const [isPercent, setIsPercent] = useState(false);
     const [items, setItems] = useState<ItemProps[]>([]);
 
     const API_URL = "http://localhost:8080";
@@ -78,9 +77,9 @@ export default function CreateSessionPage() {
             stompClient.deactivate();
         };
     }, [uniqueHash]);
-    
+
     const handleCreation = async (e: React.FormEvent) => {
-        if(isLoading) {
+        if (isLoading) {
             return
         }
         e.preventDefault();
@@ -118,7 +117,7 @@ export default function CreateSessionPage() {
             tax: parseFloat(tax) || 0,
             tip: parseFloat(tip) || 0,
         };
-            
+
         try {
             setIsLoading(true);
             const response = await fetch(`${API_URL}/graphql`, {
@@ -126,17 +125,17 @@ export default function CreateSessionPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     query: mutation,
-                    variables: { 
+                    variables: {
                         input: sessionInput
-                    }, 
+                    },
                 }),
             });
-            
+
             const result = await response.json();
             console.log(result)
-            
+
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.createSession) {
@@ -167,11 +166,11 @@ export default function CreateSessionPage() {
     }
 
     const addItem = (name: string, cost: number, shareable: boolean) => {
-        const newItem = {name, cost, shareable};
+        const newItem = { name, cost, shareable };
         setItems([newItem, ...items]);
     }
 
-    
+
     const itemTotal = () => {
         return items.reduce((total, item) => total + item.cost, 0);
     }
@@ -184,177 +183,162 @@ export default function CreateSessionPage() {
         return taxValue;
     }
 
-    const tipAmount = () => { // TODO: Add a toggle to swap between amount or percent
+    const tipAmount = () => {
         const tipValue = parseFloat(tip);
         if (isNaN(tipValue)) {
             return 0;
         }
-        if (!isPercent) {
-            return tipValue;
-        }
-        return itemTotal() * (parseFloat(tip) / 100);
+        return tipValue;
     }
 
     useEffect(() => {
         const client = new Client({
-        //brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`, // change back
-        brokerURL: `ws://localhost:8080/ws`,
+            //brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`, // change back
+            brokerURL: `ws://localhost:8080/ws`,
             onConnect: () => {
                 client.subscribe("/topic/ocr-process/" + uniqueHash, (message) => {
-                const itemData = message.body;
-                console.log("Received message: ", itemData);
-                const parsedItems: ItemProps[] = [ // get real data from ocr
-                    { name: "Pizza", cost: 20.00, shareable: true },
-                    { name: "Pasta", cost: 15.00, shareable: false },
-                ];
-                setItems(prev => [...prev, ...parsedItems]);
-            });
+                    const itemData = message.body;
+                    console.log("Received message: ", itemData);
+                    const parsedItems: ItemProps[] = [ // get real data from ocr
+                        { name: "Pizza", cost: 20.00, shareable: true },
+                        { name: "Pasta", cost: 15.00, shareable: false },
+                    ];
+                    setItems(prev => [...prev, ...parsedItems]);
+                });
             },
             onStompError: (frame) => {
                 console.error("STOMP error:", frame);
             },
-            });
+        });
 
         client.activate();
         return () => {
-        client.deactivate();
+            client.deactivate();
         };
     }, []);
 
     return (
-    <main className="max-w-2xl mx-auto p-6">
-      <Header 
-        title="Create Session" 
-        subtitle=""
-        showBackButton 
-        backHref="/" 
-      />
-
-      <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
-        {/* Session Name Entry */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
-            Session Name
-          </label>
-          <Input 
-            value={sessionName} 
-            onChange={setSessionName} 
-            placeholder=""
-          />
-        </div>
-
-        {/* Item Entry */}
-        <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
-                Add Items:
-            </label>
-            <ItemEntry addItem={addItem}></ItemEntry>
-        </div>
-
-        {/* Item Display */}
-        <div>
-            <ul className="space-y-2">
-                {items.map((item, index) => (
-                    <ItemEditor 
-                        key={index}
-                        id={index}
-                        name={item.name} 
-                        cost={(item.cost).toString()} 
-                        shareable={item.shareable} 
-                        onEdit={handleEditItem}
-                        onDelete={handleDeleteItem}>    
-                    </ItemEditor>
-                ))}
-            </ul>
-        </div>
-
-        {/* Email Entry */}
-        <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
-                Your Email:
-            </label>
-            <Input
-                type="text"
-                value={userEmail}
-                onChange={setUserEmail}
-                placeholder="Enter your email"
+        <main className="max-w-2xl mx-auto p-6">
+            <Header
+                title="Create Session"
+                subtitle=""
+                showBackButton
+                backHref="/"
             />
-        </div>
 
-        <div className = "flex gap-4">
-            { /* Tax Entry */ }
-            <div className ="flex-3">
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Tax
-                </label>
-                <Input 
-                    type='number'
-                    value={tax} 
-                    onChange={setTax} 
-                    placeholder="in $"
-                />
-            </div>
-            { /* Tip Entry */ }
-            <div className="flex-3">
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Tip
-                </label>
-                <Input 
-                    type="number"
-                    value={tip} 
-                    onChange={setTip} 
-                    placeholder="in $ or %"
-                />
-            </div>
-            { /* Tip Entry */ }
-            <div className="flex-2">
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Tip in $ or %?
-                </label>
+            <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
+                {/* Session Name Entry */}
+                <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                        Session Name
+                    </label>
+                    <Input
+                        value={sessionName}
+                        onChange={setSessionName}
+                        placeholder=""
+                    />
+                </div>
+
+                {/* Item Entry */}
+                <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                        Add Items:
+                    </label>
+                    <ItemEntry addItem={addItem}></ItemEntry>
+                </div>
+
+                {/* Item Display */}
+                <div>
+                    <ul className="space-y-2">
+                        {items.map((item, index) => (
+                            <ItemEditor
+                                key={index}
+                                id={index}
+                                name={item.name}
+                                cost={(item.cost).toString()}
+                                shareable={item.shareable}
+                                onEdit={handleEditItem}
+                                onDelete={handleDeleteItem}>
+                            </ItemEditor>
+                        ))}
+                    </ul>
+                </div>
+
+                {/* Email Entry */}
+                <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                        Your Email:
+                    </label>
+                    <Input
+                        type="text"
+                        value={userEmail}
+                        onChange={setUserEmail}
+                        placeholder="Enter your email"
+                    />
+                </div>
+
+                <div className="flex gap-4">
+                    { /* Tax Entry */}
+                    <div className="flex-3">
+                        <label className="block text-sm font-medium mb-2 text-gray-700">
+                            Tax
+                        </label>
+                        <Input
+                            type='number'
+                            value={tax}
+                            onChange={setTax}
+                            placeholder="in $"
+                        />
+                    </div>
+                    { /* Tip Entry */}
+                    <div className="flex-3">
+                        <label className="block text-sm font-medium mb-2 text-gray-700">
+                            Tip
+                        </label>
+                        <Input
+                            type="number"
+                            value={tip}
+                            onChange={setTip}
+                            placeholder="in $"
+                        />
+                    </div>
+                </div>
+
+                <hr className="border-t border-gray-900 my-8" />
+
+                { /* Confirmation Display */}
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Session Name: {sessionName}</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Your Email: {userEmail}</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Tax: ${taxAmount().toFixed(2)}</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Tip: ${tipAmount().toFixed(2)}</h2>
+                </div>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal() + taxAmount() + tipAmount()).toFixed(2)}</h2>
+                </div>
+
+                <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
+
                 <button
-                    onClick={() => setIsPercent(!isPercent)}
-                    className={`w-full py-2 rounded-md transition-colors ${isPercent ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                    >
-                    {isPercent ? "Percentage" : "Dollar Amount"}
+                    onClick={handleCreation}
+                    className="w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700">
+                    Create Session
                 </button>
-            </div>
-        </div>
-
-        <hr className="border-t border-gray-900 my-8" />
-
-        { /* Confirmation Display */ }
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Session Name: {sessionName}</h2>
-        </div>
-
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
-        </div>
-
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Your Email: {userEmail}</h2>
-        </div>
-
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tax: ${taxAmount().toFixed(2)}</h2>
-        </div>
-
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tip: ${tipAmount().toFixed(2)}</h2>
-        </div>
-
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
-        </div>
-
-        <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
-
-        <button 
-        onClick={handleCreation}
-        className="w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700">
-          Create Session
-        </button>
-      </section>
-    </main>
-  );
+            </section>
+        </main>
+    );
 }
