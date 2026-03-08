@@ -1,26 +1,28 @@
 package com.bill_split.app.service;
 
-
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-
 import com.bill_split.app.data.Item;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
 import com.bill_split.app.data.Session;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
+import com.google.protobuf.ByteString;
+import com.bill_split.app.grpc.ParseReceiptEvent;
 import com.bill_split.app.graphql.SessionInput;
 
 @Service
 public class SessionService {
-  private static final String NOTE_SUMMARY_EVENT_QUEUE = "note_summary_event_queue";
+  private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
   private final SessionRepository sessionRepository;
-  private final StringRedisTemplate redis;
+  private final RedisTemplate<String, byte[]> redis;
 
-  public SessionService(SessionRepository sessionRepository, StringRedisTemplate redis) {
+  public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis) {
     this.sessionRepository = sessionRepository;
     this.redis = redis;
   }
@@ -33,11 +35,6 @@ public class SessionService {
     System.out.print("Creating session with name: " + input.getItems());
     Session session = sessionRepository.save(new Session(input));
 
-    // String event = session.getId() + "::" + content;
-    // redis.opsForList().rightPush(SESSION_SUMMARY_EVENT_QUEUE, event); For OCR
-
-    // System.out.println(" queued summary job for note: " + note.getId());
-
     return session;
   }
 
@@ -46,19 +43,19 @@ public class SessionService {
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
       List<User> users = session.getUsers();
-      
+
       User newUser = new User();
       newUser.setEmail(userEmail);
-      
-      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { // if user is not already in session
+
+      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { 
         users.add(newUser);
         session.setUsers(users);
         sessionRepository.save(session);
       }
-      
+
       return true;
     }
-    return false; // Or throw an exception
+    return false;
   }
 
   public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
@@ -66,7 +63,8 @@ public class SessionService {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
-      System.out.println("Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
+      System.out.println(
+          "Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
       Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
       Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
@@ -88,9 +86,8 @@ public class SessionService {
       sessionRepository.save(session);
 
       // update rest of users
-      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::claim");
+      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
 
-      // return user.getTotalCost(); //ENSURE return boolean
       return true;
     }
     System.out.println("Session not found with id: " + sessionId);
@@ -121,12 +118,48 @@ public class SessionService {
       sessionRepository.save(session);
 
       // update rest of users
-      redis.opsForList().rightPush("session_claim", sessionId + "::" + itemId + "::" + userEmail + "::unclaim");
+      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
 
-      // return user.getTotalCost(); //ENSURE return boolean
       return true;
     }
     return false;
   }
+
+  public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
+    try {
+      // Validate file
+      if (file == null || file.isEmpty()) {
+        System.out.println("Empty file");
+        return false;
+      }
+
+      // Validate it's an image
+      String contentType = file.getContentType();
+      if (contentType == null || !contentType.startsWith("image/")) {
+        System.out.println("Not an image: " + contentType);
+        return false;
+      }
+
+      // Get file bytes and create protobuf event
+      byte[] imageBytes = file.getBytes();
+      ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
+          .setUniqueHash(uniqueHash)
+          .setImageData(ByteString.copyFrom(imageBytes))
+          .setMime(contentType)
+          .build();
+
+      // Queue the serialized protobuf for OCR processing
+      redis.opsForList().rightPush(PARSE_RECEIPT_EVENT_QUEUE, event.toByteArray());
+
+      System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + " with hash: " + uniqueHash);
+      return true;
+
+    } catch (Exception e) {
+        System.err.println("Error processing receipt: " + e.getMessage());
+        e.printStackTrace();
+        return false;
+    }
+  }
+
 }
 

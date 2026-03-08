@@ -4,6 +4,7 @@ type Query {
 
 type Mutation {
   createSession(input: CreateSessionInput!): Session!
+  parseReceipt(file: Upload!, uniqueHash: String): Boolean!
   claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!
   joinSession(sessionId: ID!, userEmail: String!): Boolean
   unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!

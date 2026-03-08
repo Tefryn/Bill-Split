@@ -8,6 +8,7 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -43,5 +44,10 @@ public class SessionController {
     @MutationMapping
     public Boolean claimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
         return sessionService.claimItem(sessionId, itemId, userEmail);
+    }
+
+    @MutationMapping
+    public Boolean parseReceipt(@Argument MultipartFile file, @Argument String uniqueHash) {
+        return sessionService.parseReceipt(file, uniqueHash);
     }
 }
