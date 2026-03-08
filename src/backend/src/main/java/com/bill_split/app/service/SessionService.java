@@ -3,20 +3,24 @@ package com.bill_split.app.service;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.bill_split.app.data.Item;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.RedisTemplate;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
 import com.bill_split.app.data.Session;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
-import com.bill_split.app.graphql.SessionInput;
-import com.bill_split.app.grpc.ParseReceiptEvent;
 import com.google.protobuf.ByteString;
+import com.bill_split.app.grpc.ParseReceiptEvent;
+import com.bill_split.app.graphql.SessionInput;
 
 @Service
 public class SessionService {
+  private static final String NOTE_SUMMARY_EVENT_QUEUE = "note_summary_event_queue";
   private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
   private final SessionRepository sessionRepository;
@@ -58,7 +62,7 @@ public class SessionService {
     return false; // Or throw an exception
   }
 
-  public Long claimItem(Long sessionId, Long itemId, String userEmail) {
+  public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
     System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
@@ -70,29 +74,32 @@ public class SessionService {
 
       System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return -1L;
+        return false;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
       if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
-        return -1L;
+        return false;
       }
 
       List<String> claimedBy = item.getClaimedBy();
+
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() + item.getCost());
       sessionRepository.save(session);
-      System.out.println("Claimed by list: " + item.getClaimedBy());
 
-      return user.getTotalCost();
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
+
+      // return user.getTotalCost(); //ENSURE return boolean
+      return true;
     }
     System.out.println("Session not found with id: " + sessionId);
-    return -1L;
+    return false;
   }
 
-  public Long unclaimItem(Long sessionId, Long itemId, String userEmail) {
+    public Boolean unclaimItem(Long sessionId, Long itemId, String userEmail) {
     Optional<Session> optionalSession = sessionRepository.findById(sessionId);
     if (optionalSession.isPresent()) {
       Session session = optionalSession.get();
@@ -100,24 +107,28 @@ public class SessionService {
       Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return -1L;
+        return false;
       }
       User user = optionalUser.get();
       Item item = optionalItem.get();
 
       if (!item.getClaimedBy().contains(userEmail)) {
-        return -1L;
+        return false;
       }
 
       List<String> claimedBy = item.getClaimedBy();
+      user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      user.setTotalCost(user.getTotalCost() - item.getCost());
       sessionRepository.save(session);
 
-      return user.getTotalCost();
+      // update rest of users
+      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
+
+      // return user.getTotalCost(); //ENSURE return boolean
+      return true;
     }
-    return -1L;
+    return false;
   }
 
   public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
@@ -157,3 +168,4 @@ public class SessionService {
   }
 
 }
+

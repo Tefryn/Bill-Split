@@ -37,12 +37,12 @@ public class SessionController {
     }
 
     @MutationMapping
-    public Long unclaimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
+    public Boolean unclaimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
         return sessionService.unclaimItem(sessionId, itemId, userEmail);
     }
 
     @MutationMapping
-    public Long claimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
+    public Boolean claimItem(@Argument Long sessionId, @Argument Long itemId, @Argument String userEmail) {
         return sessionService.claimItem(sessionId, itemId, userEmail);
     }
 

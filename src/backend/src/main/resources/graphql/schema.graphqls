@@ -5,9 +5,9 @@ type Query {
 type Mutation {
   createSession(input: CreateSessionInput!): Session!
   parseReceipt(file: Upload!, uniqueHash: String): Boolean!
-  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Float
-  joinSession(sessionId: ID!, userEmail: String!): Boolean!
-  unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Float
+  claimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!
+  joinSession(sessionId: ID!, userEmail: String!): Boolean
+  unclaimItem(sessionId: ID!, itemId: ID!, userEmail: String!): Boolean!
 } 
 
 type Session {
@@ -15,39 +15,39 @@ type Session {
   name: String!
   items: [Item!]!
   users: [User]!
-  tip: Float!
-  tax: Float!
+  tip: String!
+  tax: String!
 }
 
 type Item {
   id: ID
   name: String!
-  cost: Float!
+  cost: String!
   claimedBy: [String!]
   shareable: Boolean
 }
 
 type User {
   email: String!
-  total_cost: Float
+  total_cost: String!
 }
 
 input CreateSessionInput {
   items: [ItemInput!]!
   users: [UserInput!]!
-  tax: Float!
-  tip: Float!
+  tax: String!
+  tip: String!
   name: String!
 }
 
 input ItemInput {
   name: String!
-  cost: Float!
+  cost: String!
   claimedBy: [String!]
   shareable: Boolean
 }
 
 input UserInput {
   email: String!
-  total_cost: Float
+  total_cost: String!
 }

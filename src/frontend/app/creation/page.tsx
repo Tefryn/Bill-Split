@@ -26,8 +26,7 @@ export default function CreateSessionPage() {
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
     const [items, setItems] = useState<ItemProps[]>([]);
-
-    const API_URL = "http://localhost:8080";
+    const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
     const searchParams = useSearchParams();
     const uniqueHash = searchParams.get('uniqueHash'); // For Stomp Client
 
@@ -87,7 +86,7 @@ export default function CreateSessionPage() {
             return
         }
         e.preventDefault();
-
+        
         const mutation = `
             mutation CreateSession($input: CreateSessionInput!) {
                 createSession(input: $input) {
@@ -113,13 +112,13 @@ export default function CreateSessionPage() {
             name: sessionName,
             items: items.map(item => ({
                 name: item.name,
-                cost: item.cost,
+                cost: String(item.cost),
                 shareable: item.shareable,
                 claimedBy: [],
             })),
-            users: [{ email: userEmail, total_cost: 0 }],
-            tax: parseFloat(tax) || 0,
-            tip: parseFloat(tip) || 0,
+            users: [{ email: userEmail, total_cost: "0.00" }],
+            tax: String(tax) || 0,
+            tip: String(tip) || 0,
         };
 
         try {
@@ -138,8 +137,7 @@ export default function CreateSessionPage() {
             });
 
             const result = await response.json();
-            console.log(result)
-
+            
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
             } else if (result.data?.createSession) {

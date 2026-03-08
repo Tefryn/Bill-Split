@@ -1,7 +1,17 @@
 package com.bill_split.app.data;
 
-import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.util.List;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "items")
@@ -12,9 +22,10 @@ public class Item {
 
   private String name;
 
-  private Long cost;
+  private BigDecimal cost;
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "item_claimed_by", joinColumns = @JoinColumn(name = "item_id"))
   private List<String> claimedBy;
 
   private Boolean shareable = false;
@@ -22,7 +33,7 @@ public class Item {
   public Item() {
   }
 
-  public Item(String name, Long cost) {
+  public Item(String name, BigDecimal cost) {
     this.name = name;
     this.cost = cost;
   }
@@ -43,11 +54,16 @@ public class Item {
     this.name = name;
   }
 
-  public Long getCost() {
+  public BigDecimal getSplitCost() {
+    int split = !claimedBy.isEmpty() ? claimedBy.size() : 1;
+    return cost.divide(BigDecimal.valueOf(split), 2, BigDecimal.ROUND_HALF_UP);
+  }
+
+  public BigDecimal getCost() {
     return cost;
   }
 
-  public void setCost(Long cost) {
+  public void setCost(BigDecimal cost) {
     this.cost = cost;
   }
 

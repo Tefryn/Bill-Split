@@ -1,6 +1,13 @@
 package com.bill_split.app.data;
 
-import jakarta.persistence.*;
+import java.math.BigDecimal;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
@@ -13,7 +20,7 @@ public class User {
     private String email;
     
     @Column(name = "total_cost")
-    private Long total_cost = 0L;
+    private BigDecimal total_cost = BigDecimal.ZERO;
     
     public Long getId() {
         return id;
@@ -31,11 +38,11 @@ public class User {
         this.email = email;
     }
     
-    public Long getTotalCost() {
+    public BigDecimal getTotalCost() {
         return total_cost;
     }
     
-    public void setTotalCost(Long total_cost) {
+    public void setTotalCost(BigDecimal total_cost) {
         this.total_cost = total_cost;
     }
 }
