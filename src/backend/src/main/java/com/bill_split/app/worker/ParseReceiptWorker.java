@@ -53,7 +53,6 @@ public class ParseReceiptWorker {
                     byte[] event_bytes = redis.opsForList().leftPop("parse_receipt_event_queue", Duration.ofSeconds(30));
 
                     if (event_bytes != null) {
-                        System.out.println("ParseReceiptWorker.java: Received event bytes: " + event_bytes);
                         processReceipt(event_bytes);
                     }
                     // if null, just loop and wait again
@@ -83,8 +82,9 @@ public class ParseReceiptWorker {
                                     .required("name", "price", "count")
                                     .build())
                             .build(),
-                    "tax", Schema.builder().type(Type.Known.STRING).build()))
-            .required("items", "tax")
+                    "tax", Schema.builder().type(Type.Known.STRING).build(),
+                    "tip", Schema.builder().type(Type.Known.STRING).build()))
+            .required("items", "tax", "tip")
             .build();
 
     private void processReceipt(byte[] event_bytes) {
@@ -98,7 +98,7 @@ public class ParseReceiptWorker {
             
             // ENFORCE Gemini structure: Build Gemini request
             // (Assume Gemini client and model setup externally)
-            String instructions = "Extract all items and tax from this receipt image. Return as JSON: {items:[{name,price,count}],tax}. 'price' and 'tax' must be numeric strings with only digits and decimals (no currency symbols or other characters). 'count' is an integer for the quantity of that item.";
+            String instructions = "Extract all items, tax, and tip from this receipt image. Return as JSON: {items:[{name,price,count}],tax,tip}. 'price', 'tax', and 'tip' must be numeric strings with only digits and decimals (no currency symbols or other characters). 'count' is an integer for the quantity of that item. If no tip is found, use '0.00'.";
 
             // TODO: Parse Gemini response to extract items, tax, tip
             // parseResponse(geminiResponse);
@@ -126,7 +126,6 @@ public class ParseReceiptWorker {
 
             // Expand items with count > 1 into separate entries
             String expandedResponse = expandItemsByCount(geminiResponse);
-            System.out.println("ParseReceiptWorker.java: Expanded response: " + expandedResponse);
             sendResults(uniqueHash, expandedResponse);
 
         } catch (Exception e) {
@@ -136,7 +135,6 @@ public class ParseReceiptWorker {
 
     private void sendResults(String uniqueHash, String geminiResponse) {
         messagingTemplate.convertAndSend("/topic/receipt/" + uniqueHash, geminiResponse);
-        System.out.println("ParseReceiptWorker.java: Sent OCR results via WebSocket for hash: " + uniqueHash);
     }
 
     private String expandItemsByCount(String json) {

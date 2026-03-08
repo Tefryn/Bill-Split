@@ -42,7 +42,6 @@ export default function CreateSessionPage() {
             onConnect: () => {
                 console.log('STOMP connected, subscribing to /topic/receipt/' + uniqueHash);
                 stompClient.subscribe('/topic/receipt/' + uniqueHash, (message) => {
-                    console.log('Raw WebSocket message received:', message.body);
                     try {
                         const parsed = JSON.parse(message.body);
                         console.log('Received OCR results:', parsed);
@@ -60,6 +59,11 @@ export default function CreateSessionPage() {
                         // Populate tax
                         if (parsed.tax) {
                             setTax(parsed.tax);
+                        }
+
+                        // Populate tip
+                        if (parsed.tip) {
+                            setTip(parsed.tip);
                         }
                     } catch (err) {
                         console.error('Error parsing OCR WebSocket message:', err);
