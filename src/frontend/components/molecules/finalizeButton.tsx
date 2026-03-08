@@ -72,7 +72,7 @@ export default function FinalizeButton() {
                 setTimeout(() => setErrMessage(""), 3000);
             }
         } catch (err) {
-            setErrMessage("Finalize failed");
+            setErrMessage("Finalize failed: " + err);
             setTimeout(() => setErrMessage(""), 3000);
         }
     };

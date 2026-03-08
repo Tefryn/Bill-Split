@@ -6,8 +6,6 @@ import com.bill_split.app.graphql.SessionInput;
 import com.bill_split.app.data.Item;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
-import java.util.Arrays;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -98,7 +96,6 @@ public class SessionService {
       if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
         return false;
       }
-      User user = optionalUser.get();
       Item item = optionalItem.get();
 
       if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
@@ -140,6 +137,7 @@ public class SessionService {
 
       List<String> claimedBy = item.getClaimedBy();
       user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
+      System.out.println("Unclaimed total: "+user.getTotalCost());
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
       sessionRepository.save(session);
@@ -167,6 +165,9 @@ public class SessionService {
       Boolean billCanBeClosedOut = (!deadWeightUser && totalCost.compareTo(expectedCost) >= 0);
       String status = billCanBeClosedOut ? "Closeable" : "Not Closeable";
       String payload = "Bill status::" + status;
+
+      socket.convertAndSend(destination, payload);
+      System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
     }
   }
 

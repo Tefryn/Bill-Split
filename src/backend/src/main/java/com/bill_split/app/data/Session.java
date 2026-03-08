@@ -1,6 +1,4 @@
 package com.bill_split.app.data;
-import com.bill_split.app.data.Item;
-import com.bill_split.app.data.User;
 import com.bill_split.app.graphql.SessionInput;
 import jakarta.persistence.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;

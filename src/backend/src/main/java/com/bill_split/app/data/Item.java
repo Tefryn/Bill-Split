@@ -3,6 +3,8 @@ package com.bill_split.app.data;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.checkerframework.checker.units.qual.min;
+
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -55,7 +57,7 @@ public class Item {
   }
 
   public BigDecimal getSplitCost() {
-    int split = !claimedBy.isEmpty() ? claimedBy.size() : 1;
+    int split = Math.max(1, claimedBy.size());
     return cost.divide(BigDecimal.valueOf(split), 2, BigDecimal.ROUND_HALF_UP);
   }
 

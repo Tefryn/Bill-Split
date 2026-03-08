@@ -86,7 +86,7 @@ export default function SessionView() {
             console.error("Network error occurred.", err);
         }
         setErrMessage("Failed to fetch Session.");
-    }, [sessionId]);
+    }, [sessionId, API_URL]);
 
     useEffect(() => {
         const loadSession = async () => {
@@ -123,7 +123,7 @@ export default function SessionView() {
         return () => {
         client.deactivate();
         };
-    }, []);
+    }, [sessionId, userEmail]);
     
     const handleClaim = async (item: Item) => {
         console.log('claim');
@@ -360,7 +360,7 @@ export default function SessionView() {
 
         <div>
               <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
-              <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${userTotal.toFixed(2)}</h2>
+              <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${Number(userTotal).toFixed(2)}</h2>
         </div>
 
         <div>

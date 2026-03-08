@@ -29,7 +29,6 @@ import com.google.genai.types.Type;
  */
 @Component
 public class ParseReceiptWorker {
-
     private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
     private final RedisTemplate<String, byte[]> redis;
     private final SimpMessagingTemplate messagingTemplate;
@@ -50,7 +49,7 @@ public class ParseReceiptWorker {
                     .println("ParseReceiptWorker.java: Receipt Worker started. Listening for parse_receipt_event_queue events");
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    byte[] event_bytes = redis.opsForList().leftPop("parse_receipt_event_queue", Duration.ofSeconds(30));
+                    byte[] event_bytes = redis.opsForList().leftPop(PARSE_RECEIPT_EVENT_QUEUE, Duration.ofSeconds(30));
 
                     if (event_bytes != null) {
                         processReceipt(event_bytes);
