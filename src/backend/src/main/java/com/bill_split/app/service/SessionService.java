@@ -78,7 +78,7 @@ public class SessionService {
       }
       Item item = optionalItem.get();
 
-      if ((!item.getShareable() && item.getClaimedBy().isEmpty())|| item.getClaimedBy().contains(userEmail)) {
+      if ((!item.getShareable() && !item.getClaimedBy().isEmpty())|| item.getClaimedBy().contains(userEmail)) {
         return false;
       }
 
