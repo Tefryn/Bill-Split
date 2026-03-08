@@ -1,15 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
 import { useUser } from "@/components/molecules/userContext";
-import { ItemEditor } from "@/components/molecules/itemEditor";
-import { Client } from "@stomp/stompjs";
-import ImageUploader from "@/components/molecules/imageUploader";
-import { parse } from "path";
+import { useSearchParams } from 'next/navigation';
+
 
 interface ItemProps {
     name: string;
@@ -29,7 +27,8 @@ export default function CreateSessionPage() {
     const [items, setItems] = useState<ItemProps[]>([]);
 
     const API_URL = "http://localhost:8080";
-    const uniqueHash = crypto.randomUUID(); //used for OCR websocket
+    const searchParams = useSearchParams();
+    const uniqueHash = searchParams.get('uniqueHash'); // For Stomp Client
 
     const router = useRouter();
     
@@ -106,20 +105,6 @@ export default function CreateSessionPage() {
         setIsLoading(false);
     };
 
-    const handleEditItem = (index: number, name: string, cost: number, shareable: boolean) => {
-        console.log(`Editing item at index ${index} with new values: ${name}, ${cost}, ${shareable}`);
-        if (name === "" || isNaN(cost) || cost < 0) {
-            setErrMessage("Invalid item details. Please check your inputs.");
-            setTimeout(() => setErrMessage(""), 3000);
-            return;
-        }
-        setItems(items.map((item, i) => i === index ? { name, cost, shareable } : item));
-    }
-
-    const handleDeleteItem = (index: number) => {
-        setItems(items.filter((_, i) => i !== index));
-    }
-
     const addItem = (name: string, cost: number, shareable: boolean) => {
         const newItem = {name, cost, shareable};
         setItems([newItem, ...items]);
@@ -148,104 +133,6 @@ export default function CreateSessionPage() {
         }
         return itemTotal() * (parseFloat(tip) / 100);
     }
-
-    const parseReceipt =  async (file: File) => {
-        // TODO: abort controller?
-        setIsLoading(true);
-        const mutation = `
-            mutation ParseReceipt($file: Upload!, $uniqueHash: String) {
-                parseReceipt(file: $file, uniqueHash: $uniqueHash)
-            }
-        `;
-
-        try {
-            // Use FormData to send multipart request per GraphQL multipart upload spec
-            const formData = new FormData();
-            
-            // Add operations field with the mutation and variables structure
-            const operations = {
-                query: mutation,
-                variables: {
-                    file: null, // Will be replaced by file upload
-                    uniqueHash: uniqueHash
-                }
-            };
-            formData.append('operations', JSON.stringify(operations));
-            
-            // Add map field to map file position to variable path
-            const map = {
-                '0': ['variables.file']
-            };
-            formData.append('map', JSON.stringify(map));
-            
-            // Add the actual file
-            formData.append('0', file);
-
-            // const response = await fetch(`${API_URL}/graphql`, {
-            //     method: 'POST',
-            //     body: formData,
-            // });
-
-            const response = await fetch(`${API_URL}/graphql`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    query: mutation,
-                    variables: { 
-                        file: "test",
-                        uniqueHash: uniqueHash
-                    }, 
-                }),
-            });
-            
-            const result = await response.json();
-            
-            if (result.errors) {
-                console.error(`GraphQL Error: ${result.errors[0].message}`);
-                setErrMessage(`Error: ${result.errors[0].message}`);
-                setTimeout(() => setErrMessage(""), 3000);
-            } else if (result.data?.parseReceipt) {
-                console.log(`Receipt uploaded successfully: ${result.data.parseReceipt.message}`);
-                // TODO: Listen on WebSocket for OCR results using uniqueHash
-            } else {
-                setErrMessage(result.data?.parseReceipt?.message || "Failed to parse receipt.");
-                setTimeout(() => setErrMessage(""), 3000);
-            }
-        } catch (err) {
-            console.error("Network error occurred.", err);
-            setErrMessage("Network error occurred.");
-            setTimeout(() => setErrMessage(""), 3000);
-        }
-        setIsLoading(false);
-    }
-
-    useEffect(() => {
-            const client = new Client({
-            //rokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
-            brokerURL: `ws://localhost:8080/ws`,
-            onConnect: () => {
-                client.subscribe("/topic/ocr-process/" + uniqueHash, (message) => {
-                const itemData = message.body;
-                console.log("Received message: ", itemData);
-                const parsedItems: ItemProps[] = [
-                    { name: "Pizza", cost: 20.00, shareable: true },
-                    { name: "Pasta", cost: 15.00, shareable: false },
-                ];
-                setItems(prev => [...prev, ...parsedItems]);
-            });
-            },
-            onStompError: (frame) => {
-                console.error("STOMP error:", frame);
-            },
-            });
-    
-            client.activate();
-            return () => {
-            client.deactivate();
-            };
-    }, []);
 
     return (
     <main className="max-w-2xl mx-auto p-6">
@@ -281,15 +168,10 @@ export default function CreateSessionPage() {
         <div>
             <ul className="space-y-2">
                 {items.map((item, index) => (
-                    <ItemEditor 
-                        key={index}
-                        id={index}
-                        name={item.name} 
-                        cost={(item.cost).toString()} 
-                        shareable={item.shareable} 
-                        onEdit={handleEditItem}
-                        onDelete={handleDeleteItem}>    
-                    </ItemEditor>
+                    <li key={index} className="flex justify-between text-black items-center bg-black-50 p-3 rounded-md border">
+                        <span>{item.name} - {item.cost.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{item.shareable ? "Shared" : "Not Shared"}</span>
+                    </li>
                 ))}
             </ul>
         </div>
@@ -344,14 +226,6 @@ export default function CreateSessionPage() {
                     {isPercent ? "Percentage" : "Dollar Amount"}
                 </button>
             </div>
-        </div>
-
-
-        <div> 
-            <ImageUploader 
-                onImageUpload={parseReceipt}
-                isProcessing={isLoading}
-            />
         </div>
 
         <hr className="border-t border-gray-900 my-8" />

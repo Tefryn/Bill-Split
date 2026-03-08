@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const router = useRouter();
 
-  const routeToCreation = (e: React.FormEvent) => {
+  const routeToOCR = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(`/creation`);
+    router.push(`/ocr`);
   };
 
   const joinSession = async (e: React.FormEvent) => {
@@ -31,7 +31,7 @@ export default function Home() {
         </button>
 
         <button
-          onClick={routeToCreation}
+          onClick={routeToOCR}
           className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
         >
           Create Session
