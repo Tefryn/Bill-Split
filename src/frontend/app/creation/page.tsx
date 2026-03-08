@@ -193,32 +193,6 @@ export default function CreateSessionPage() {
         return tipValue;
     }
 
-    useEffect(() => {
-        const client = new Client({
-            //brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`, // change back
-            brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws` || `ws://localhost:8080/ws`,
-            onConnect: () => {
-                client.subscribe("/topic/ocr-process/" + uniqueHash, (message) => {
-                    const itemData = message.body;
-                    console.log("Received message: ", itemData);
-                    const parsedItems: ItemProps[] = [ // get real data from ocr
-                        { name: "Pizza", cost: 20.00, shareable: true },
-                        { name: "Pasta", cost: 15.00, shareable: false },
-                    ];
-                    setItems(prev => [...prev, ...parsedItems]);
-                });
-            },
-            onStompError: (frame) => {
-                console.error("STOMP error:", frame);
-            },
-        });
-
-        client.activate();
-        return () => {
-            client.deactivate();
-        };
-    }, []);
-
     return (
         <main className="max-w-2xl mx-auto p-6">
             <Header
