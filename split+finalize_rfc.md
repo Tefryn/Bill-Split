@@ -1,8 +1,9 @@
 - Start Date: 2026-24-02
 - Author: Eiko Reisz
 
-## 1. Architecture Overview and State Model
-<!-- Connor will handle -->
+## 1. Architecture Overview
+![System Architecture Diagram](split+finalize_Diagram.jpg)
+
 
 ## 2. Featurees to Be Implemented
 1. Event Queue for updating shareable split
