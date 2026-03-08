@@ -21,8 +21,6 @@ export default function SessionView() {
 
     const router = useRouter();
 
-    console.log('result');
-
     const itemTotal = () => {
         return session?.items.reduce((acc: number, item: Item) => acc + parseFloat(item.cost), 0) || 0;
     };
@@ -96,7 +94,7 @@ export default function SessionView() {
                 const currentUser = currentSession?.users.find((user: User) => user.email === userEmail);
 
                 if (currentUser) {
-                    setUserTotal(currentUser.total_cost);
+                    setUserTotal(parseFloat(currentUser.total_cost));
                 }
             }
         };
