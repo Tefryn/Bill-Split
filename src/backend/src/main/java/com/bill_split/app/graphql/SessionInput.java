@@ -1,65 +1,67 @@
 package com.bill_split.app.graphql;
 
-import com.bill_split.app.data.User;
-import  com.bill_split.app.data.Item;
 import java.util.List;
 
+import com.bill_split.app.data.Item;
+import com.bill_split.app.data.User;
+
 public class SessionInput {
-  private List<Item> items;
-  private List<User> users;
-  private String name;
-  private Boolean shareable;
-  private String tax;
-  private String tip;
 
-  public SessionInput() {
-  }
+    private List<Item> items;
+    private List<User> users;
+    private String name;
+    private Boolean shareable;
+    private String tax;
+    private String tip;
 
-  public List<Item> getItems() {
-    return items;
-  }
+    public SessionInput() {
+    }
 
-  public void setItems(List<Item> items) {
-    this.items = items;
-  }
+    public List<Item> getItems() {
+        return items;
+    }
 
-  public List<User> getUsers() {
-    return users;
-  }
+    public void setItems(List<Item> items) {
+        this.items = items;
+    }
 
-  public void setUsers(List<User> users) {
-    this.users = users;
-  }
+    public List<User> getUsers() {
+        return users;
+    }
 
-  public String getName() {
-    return name;
-  }
+    public void setUsers(List<User> users) {
+        this.users = users;
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    public String getName() {
+        return name;
+    }
 
-  public Boolean getShareable() {
-    return shareable;
-  }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-  public void setShareable(Boolean shareable) {
-    this.shareable = shareable;
-  }
+    public Boolean getShareable() {
+        return shareable;
+    }
 
-  public String getTax() {
-    return tax;
-  }
+    public void setShareable(Boolean shareable) {
+        this.shareable = shareable;
+    }
 
-  public void setTax(String tax) {
-    this.tax = tax;
-  }
+    public String getTax() {
+        return tax;
+    }
 
-  public String getTip() {
-    return tip;
-  }
+    public void setTax(String tax) {
+        this.tax = tax;
+    }
 
-  public void setTip(String tip) {
-    this.tip = tip;
-  }
+    public String getTip() {
+        return tip;
+    }
+
+    public void setTip(String tip) {
+        this.tip = tip;
+    }
 }

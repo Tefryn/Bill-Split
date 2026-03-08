@@ -15,7 +15,7 @@ export const ItemEditor = ({ id, name, cost, shareable, onEdit, onDelete }: Item
     const [editedCost, setEditedCost] = useState(cost);
     const [editedShareable, setEditedShareable] = useState(shareable);
     const [editing, setEditing] = useState(false);
-    
+
     return (
         <li className="flex flex-col bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex justify-between items-center p-4">
@@ -44,7 +44,7 @@ export const ItemEditor = ({ id, name, cost, shareable, onEdit, onDelete }: Item
                     <div className="space-y-3">
                         <p className="text-xs font-bold uppercase text-gray-400">Editing Details</p>
                         <div className="flex gap-4">
-                           <div className="h-10 w-full bg-white border rounded-md">
+                            <div className="h-10 w-full bg-white border rounded-md">
                                 <input
                                     type="text"
                                     value={editedName}
@@ -52,8 +52,8 @@ export const ItemEditor = ({ id, name, cost, shareable, onEdit, onDelete }: Item
                                     className="h-full w-full px-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
                                     placeholder="Item Name">
                                 </input>
-                           </div>
-                           <div className="h-10 w-full bg-white border rounded-md">
+                            </div>
+                            <div className="h-10 w-full bg-white border rounded-md">
                                 <input
                                     type="text"
                                     value={editedCost}
@@ -61,19 +61,19 @@ export const ItemEditor = ({ id, name, cost, shareable, onEdit, onDelete }: Item
                                     className="h-full w-full px-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
                                     placeholder="Item Cost">
                                 </input>
-                           </div>
-                           <button
+                            </div>
+                            <button
                                 onClick={() => setEditedShareable(!editedShareable)}
                                 className={`w-full py-2 rounded-md transition-colors ${editedShareable ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
-                                >
+                            >
                                 {editedShareable ? "Shared" : "Not Shared"}
                             </button>
-                           <button
+                            <button
                                 onClick={() => onEdit(id, editedName, parseFloat(editedCost), editedShareable)}
                                 className="bg-blue-600 text-white px-4 rounded-md">
                                 Save
                             </button>
-                           <button 
+                            <button
                                 onClick={() => onDelete(id)}
                                 className="bg-red-600 text-white px-4 rounded-md">
                                 Delete

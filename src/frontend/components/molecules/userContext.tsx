@@ -25,8 +25,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     });
 
     useEffect(() => {
-      localStorage.setItem("userEmail", email);
-      localStorage.setItem("sessionId", sessionId);
+        localStorage.setItem("userEmail", email);
+        localStorage.setItem("sessionId", sessionId);
     }, [email, sessionId]);
 
     const setUser = (email: string, sessionId: string) => {

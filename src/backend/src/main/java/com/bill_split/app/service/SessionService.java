@@ -17,149 +17,149 @@ import com.google.protobuf.ByteString;
 
 @Service
 public class SessionService {
-  private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
-  private final SessionRepository sessionRepository;
-  private final RedisTemplate<String, byte[]> redis;
+    private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
-  public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis) {
-    this.sessionRepository = sessionRepository;
-    this.redis = redis;
-  }
+    private final SessionRepository sessionRepository;
+    private final RedisTemplate<String, byte[]> redis;
 
-  public Optional<Session> getSessionById(Long sessionId) {
-    return sessionRepository.findById(sessionId);
-  }
-
-  public Session createSession(SessionInput input) {
-    System.out.print("Creating session with name: " + input.getItems());
-    Session session = sessionRepository.save(new Session(input));
-
-    return session;
-  }
-
-  public Boolean joinSession(Long sessionId, String userEmail) {
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      List<User> users = session.getUsers();
-
-      User newUser = new User();
-      newUser.setEmail(userEmail);
-
-      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { 
-        users.add(newUser);
-        session.setUsers(users);
-        sessionRepository.save(session);
-      }
-
-      return true;
+    public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis) {
+        this.sessionRepository = sessionRepository;
+        this.redis = redis;
     }
-    return false;
-  }
 
-  public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
-    System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      System.out.println(
-          "Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
-      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
-      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
-
-      System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
-      if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return false;
-      }
-      User user = optionalUser.get();
-      Item item = optionalItem.get();
-
-      if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
-        return false;
-      }
-
-      List<String> claimedBy = item.getClaimedBy();
-
-      claimedBy.add(userEmail);
-      item.setClaimedBy(claimedBy);
-      sessionRepository.save(session);
-
-      // update rest of users
-      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
-
-      return true;
+    public Optional<Session> getSessionById(Long sessionId) {
+        return sessionRepository.findById(sessionId);
     }
-    System.out.println("Session not found with id: " + sessionId);
-    return false;
-  }
+
+    public Session createSession(SessionInput input) {
+        System.out.print("Creating session with name: " + input.getItems());
+        Session session = sessionRepository.save(new Session(input));
+
+        return session;
+    }
+
+    public Boolean joinSession(Long sessionId, String userEmail) {
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            List<User> users = session.getUsers();
+
+            User newUser = new User();
+            newUser.setEmail(userEmail);
+
+            if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) {
+                users.add(newUser);
+                session.setUsers(users);
+                sessionRepository.save(session);
+            }
+
+            return true;
+        }
+        return false;
+    }
+
+    public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
+        System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            System.out.println(
+                    "Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
+            Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
+            Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
+
+            System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
+            if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
+                return false;
+            }
+            User user = optionalUser.get();
+            Item item = optionalItem.get();
+
+            if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
+                return false;
+            }
+
+            List<String> claimedBy = item.getClaimedBy();
+
+            claimedBy.add(userEmail);
+            item.setClaimedBy(claimedBy);
+            sessionRepository.save(session);
+
+            // update rest of users
+            redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
+
+            return true;
+        }
+        System.out.println("Session not found with id: " + sessionId);
+        return false;
+    }
 
     public Boolean unclaimItem(Long sessionId, Long itemId, String userEmail) {
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
-      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
+            Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
-      if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return false;
-      }
-      User user = optionalUser.get();
-      Item item = optionalItem.get();
+            if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
+                return false;
+            }
+            User user = optionalUser.get();
+            Item item = optionalItem.get();
 
-      if (!item.getClaimedBy().contains(userEmail)) {
-        return false;
-      }
+            if (!item.getClaimedBy().contains(userEmail)) {
+                return false;
+            }
 
-      List<String> claimedBy = item.getClaimedBy();
-      user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
-      claimedBy.remove(userEmail);
-      item.setClaimedBy(claimedBy);
-      sessionRepository.save(session);
+            List<String> claimedBy = item.getClaimedBy();
+            user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
+            claimedBy.remove(userEmail);
+            item.setClaimedBy(claimedBy);
+            sessionRepository.save(session);
 
-      // update rest of users
-      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
+            // update rest of users
+            redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
 
-      return true;
-    }
-    return false;
-  }
-
-  public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
-    try {
-      // Validate file
-      if (file == null || file.isEmpty()) {
-        System.out.println("Empty file");
-        return false;
-      }
-
-      // Validate it's an image
-      String contentType = file.getContentType();
-      if (contentType == null || !contentType.startsWith("image/")) {
-        System.out.println("Not an image: " + contentType);
-        return false;
-      }
-
-      // Get file bytes and create protobuf event
-      byte[] imageBytes = file.getBytes();
-      ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
-          .setUniqueHash(uniqueHash)
-          .setImageData(ByteString.copyFrom(imageBytes))
-          .setMime(contentType)
-          .build();
-
-      // Queue the serialized protobuf for OCR processing
-      redis.opsForList().rightPush(PARSE_RECEIPT_EVENT_QUEUE, event.toByteArray());
-
-      System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + " with hash: " + uniqueHash);
-      return true;
-
-    } catch (Exception e) {
-        System.err.println("Error processing receipt: " + e.getMessage());
-        e.printStackTrace();
+            return true;
+        }
         return false;
     }
-  }
+
+    public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
+        try {
+            // Validate file
+            if (file == null || file.isEmpty()) {
+                System.out.println("Empty file");
+                return false;
+            }
+
+            // Validate it's an image
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                System.out.println("Not an image: " + contentType);
+                return false;
+            }
+
+            // Get file bytes and create protobuf event
+            byte[] imageBytes = file.getBytes();
+            ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
+                    .setUniqueHash(uniqueHash)
+                    .setImageData(ByteString.copyFrom(imageBytes))
+                    .setMime(contentType)
+                    .build();
+
+            // Queue the serialized protobuf for OCR processing
+            redis.opsForList().rightPush(PARSE_RECEIPT_EVENT_QUEUE, event.toByteArray());
+
+            System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + " with hash: " + uniqueHash);
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Error processing receipt: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 }
-

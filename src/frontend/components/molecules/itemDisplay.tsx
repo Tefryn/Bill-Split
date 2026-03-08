@@ -37,7 +37,7 @@ export function ItemDisplay({ item, onClaim, onUnclaim, isClaimed, disabled }: I
             success = false;
         }
 
-        if (!success) {            
+        if (!success) {
             setClaimStatus(oldStatus);
         }
     };

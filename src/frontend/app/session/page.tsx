@@ -57,18 +57,18 @@ export default function SessionView() {
                 }
             }
         `;
-        
+
         try {
             const response = await fetch(`${API_URL}/graphql`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     query: query,
-                    variables: { 
+                    variables: {
                         sessionId: sessionId
-                    }, 
+                    },
                 }),
             });
 
@@ -105,28 +105,28 @@ export default function SessionView() {
 
     useEffect(() => {
         const client = new Client({
-        brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
-        onConnect: () => {
-            client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
-            const newCost = message.body;
-            console.log("Received message:", message.body);
-            setUserTotal(parseFloat(newCost));
-        });
-        },
-        onStompError: (frame) => {
-            console.error("STOMP error:", frame);
-        },
+            brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws`,
+            onConnect: () => {
+                client.subscribe("/topic/session/" + sessionId + "/cost_update/" + userEmail, (message) => {
+                    const newCost = message.body;
+                    console.log("Received message:", message.body);
+                    setUserTotal(parseFloat(newCost));
+                });
+            },
+            onStompError: (frame) => {
+                console.error("STOMP error:", frame);
+            },
         });
 
         client.activate();
         return () => {
-        client.deactivate();
+            client.deactivate();
         };
     }, []);
-    
+
     const handleClaim = async (item: Item) => {
         console.log('claim');
-        if(isLoading) {
+        if (isLoading) {
             return false;
         }
 
@@ -137,12 +137,9 @@ export default function SessionView() {
         // otherwise, undo split and resplit with one extra person
         let costUpdate: number;
         const itemCost = parseFloat(item.cost);
-        if (item.claimedBy.length === 0)
-        { costUpdate = itemCost; }
-        else if (item.claimedBy.includes(userEmail)) 
-        { costUpdate = itemCost / (item.claimedBy.length); }
-        else
-        { costUpdate = itemCost / (item.claimedBy.length + 1); }
+        if (item.claimedBy.length === 0) { costUpdate = itemCost; }
+        else if (item.claimedBy.includes(userEmail)) { costUpdate = itemCost / (item.claimedBy.length); }
+        else { costUpdate = itemCost / (item.claimedBy.length + 1); }
 
         setUserTotal(oldUserTotal + costUpdate);
 
@@ -157,13 +154,13 @@ export default function SessionView() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     query: mutation,
-                    variables: { 
+                    variables: {
                         sessionId: sessionId,
                         itemId: item.id,
                         userEmail: userEmail
-                    }, 
+                    },
                 }),
             });
             const result = await response.json();
@@ -186,8 +183,8 @@ export default function SessionView() {
 
     const handleUnclaim = async (item: Item) => {
         console.log('unclaim');
-        if(isLoading) {
-            return false; 
+        if (isLoading) {
+            return false;
         }
 
         setIsLoading(true);
@@ -198,12 +195,9 @@ export default function SessionView() {
 
         let costUpdate: number;
         const itemCost = parseFloat(item.cost);
-        if (item.claimedBy.length === 0)
-        { costUpdate = itemCost; }
-        else if (item.claimedBy.includes(userEmail)) 
-        { costUpdate = itemCost / (item.claimedBy.length); }
-        else
-        { costUpdate = itemCost / (item.claimedBy.length + 1); }
+        if (item.claimedBy.length === 0) { costUpdate = itemCost; }
+        else if (item.claimedBy.includes(userEmail)) { costUpdate = itemCost / (item.claimedBy.length); }
+        else { costUpdate = itemCost / (item.claimedBy.length + 1); }
 
         setUserTotal(oldUserTotal - costUpdate);
 
@@ -218,13 +212,13 @@ export default function SessionView() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     query: mutation,
-                    variables: { 
+                    variables: {
                         sessionId: sessionId,
                         itemId: item.id,
                         userEmail: userEmail
-                    }, 
+                    },
                 }),
             });
 
@@ -256,100 +250,100 @@ export default function SessionView() {
     if (!session) {
         return (
             <main className="max-w-2xl mx-auto p-6">
-                <Header 
-                    title="Session View" 
+                <Header
+                    title="Session View"
                     subtitle=""
-                    showBackButton 
-                    backHref="/" 
+                    showBackButton
+                    backHref="/"
                 />
                 <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Session ID: ...</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Session ID: ...</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Welcome ...</h2>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ...</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Welcome ...</h2>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ...</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Items: ...</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Items: ...</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Tax: ...</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Tax: ...</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Tip: ...</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Tip: ...</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Total: ...</h2>
-                </div>
-            </section>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Total: ...</h2>
+                    </div>
+                </section>
             </main>
         );
     }
 
     return (
-    <main className="max-w-2xl mx-auto p-6">
-      <Header 
-        title="Session View" 
-        subtitle=""
-        showBackButton 
-        backHref="/" 
-      />
+        <main className="max-w-2xl mx-auto p-6">
+            <Header
+                title="Session View"
+                subtitle=""
+                showBackButton
+                backHref="/"
+            />
 
-      <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Session ID: {session.id}</h2>
-        </div>
+            <section className="space-y-6 bg-white p-6 rounded-lg shadow-sm border">
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Session ID: {session.id}</h2>
+                </div>
 
-        <div>
-              <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
-              <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${Number(userTotal).toFixed(2)}</h2>
-        </div>
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${Number(userTotal).toFixed(2)}</h2>
+                </div>
 
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
-            <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
-            <ul className="space-y-2">
-                {session.items.map((item) => (
-                    <ItemDisplay
-                        key={item.id}
-                        item={item}
-                        onClaim={() => handleClaim(item)}
-                        onUnclaim={() => handleUnclaim(item)}
-                        isClaimed={item.claimedBy.includes(userEmail)}
-                        disabled={!item.shareable && item.claimedBy.length > 0 && !item.claimedBy.includes(userEmail)}
-                    />
-                ))}
-            </ul>
-        </div>
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
+                    <ul className="space-y-2">
+                        {session.items.map((item) => (
+                            <ItemDisplay
+                                key={item.id}
+                                item={item}
+                                onClaim={() => handleClaim(item)}
+                                onUnclaim={() => handleUnclaim(item)}
+                                isClaimed={item.claimedBy.includes(userEmail)}
+                                disabled={!item.shareable && item.claimedBy.length > 0 && !item.claimedBy.includes(userEmail)}
+                            />
+                        ))}
+                    </ul>
+                </div>
 
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tax: {session.tax}% - ${taxAmount().toFixed(2)}</h2>
-        </div>
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Tax: {session.tax}% - ${taxAmount().toFixed(2)}</h2>
+                </div>
 
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tip: {session.tip}% - ${tipAmount().toFixed(2)}</h2>
-        </div>
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Tip: {session.tip}% - ${tipAmount().toFixed(2)}</h2>
+                </div>
 
-        <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
-        </div>
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal() + taxAmount() + tipAmount()).toFixed(2)}</h2>
+                </div>
 
-        <div>
-            <button 
-                onClick = {handleLogOut}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
-            >
-                Log Out
-            </button>
-        </div>
+                <div>
+                    <button
+                        onClick={handleLogOut}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
+                    >
+                        Log Out
+                    </button>
+                </div>
 
-        {/* <div>
+                {/* <div>
             <button 
                 onClick = {() => console.log(JSON.stringify(session))}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors h-[42px]"
@@ -357,7 +351,7 @@ export default function SessionView() {
                 check session (debug)
             </button>
         </div> */}
-      </section>
-    </main>
-  );
+            </section>
+        </main>
+    );
 }
