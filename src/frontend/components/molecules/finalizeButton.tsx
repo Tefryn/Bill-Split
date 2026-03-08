@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { Client } from '@stomp/stompjs';
 import { useUser } from "@/components/molecules/userContext";
 
-const WEBSOCKET_URL = 'ws://localhost:8080/ws';
-const API_URL = "http://localhost:8080";
+const WEBSOCKET_URL = 'ws://' + process.env.NEXT_PUBLIC_BACKEND_IP + ':' + process.env.NEXT_PUBLIC_BACKEND_PORT + '/ws' || 'ws://localhost:8080/ws';
+const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
 
 export default function FinalizeButton() {
     const { sessionId: sessionId } = useUser();
