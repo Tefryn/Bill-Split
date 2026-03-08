@@ -1,19 +1,19 @@
 package com.bill_split.app.service;
 
-import com.bill_split.app.data.Session;
-import com.bill_split.app.graphql.SessionInput;
-import com.bill_split.app.data.Item;
-import com.bill_split.app.data.SessionRepository;
-import com.bill_split.app.data.User;
-import com.bill_split.app.grpc.ParseReceiptEvent;
-import com.google.protobuf.ByteString;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Optional;
+import com.bill_split.app.data.Item;
+import com.bill_split.app.data.Session;
+import com.bill_split.app.data.SessionRepository;
+import com.bill_split.app.data.User;
+import com.bill_split.app.graphql.SessionInput;
+import com.bill_split.app.grpc.ParseReceiptEvent;
+import com.google.protobuf.ByteString;
 
 @Service
 public class SessionService {
@@ -137,11 +137,10 @@ public class SessionService {
 
       // Get file bytes and create protobuf event
       byte[] imageBytes = file.getBytes();
-      String mime = file.getContentType();
       ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
           .setUniqueHash(uniqueHash)
           .setImageData(ByteString.copyFrom(imageBytes))
-          .setMime(mime)
+          .setMime(contentType)
           .build();
 
       // Queue the serialized protobuf for OCR processing

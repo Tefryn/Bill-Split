@@ -1,16 +1,19 @@
 package com.bill_split.app.worker;
 
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Map;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-
 import com.bill_split.app.grpc.ParseReceiptEvent;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.genai.Client;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
@@ -29,9 +32,15 @@ public class ParseReceiptWorker {
 
     private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
     private final RedisTemplate<String, byte[]> redis;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final String googleApiKey;
 
-    public ParseReceiptWorker(RedisTemplate<String, byte[]> redis) {
+    public ParseReceiptWorker(RedisTemplate<String, byte[]> redis,
+                              SimpMessagingTemplate messagingTemplate,
+                              @org.springframework.beans.factory.annotation.Value("${GOOGLE_API_KEY}") String googleApiKey) {
         this.redis = redis;
+        this.messagingTemplate = messagingTemplate;
+        this.googleApiKey = googleApiKey;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -70,8 +79,8 @@ public class ParseReceiptWorker {
                                     .properties(Map.of(
                                             "name", Schema.builder().type(Type.Known.STRING).build(),
                                             "price", Schema.builder().type(Type.Known.STRING).build(),
-                                            "shareable", Schema.builder().type(Type.Known.BOOLEAN).build()))
-                                    .required("name", "price", "shareable")
+                                            "count", Schema.builder().type(Type.Known.INTEGER).build()))
+                                    .required("name", "price", "count")
                                     .build())
                             .build(),
                     "tax", Schema.builder().type(Type.Known.STRING).build()))
@@ -86,31 +95,15 @@ public class ParseReceiptWorker {
             String uniqueHash = event.getUniqueHash();
             String mime = event.getMime();
             byte[] fileBytes = event.getImageData().toByteArray();
-            String base64Image = Base64.getEncoder().encodeToString(fileBytes);
-            byte[] encodedBytes = Base64.getEncoder().encode(fileBytes);
-
+            
             // ENFORCE Gemini structure: Build Gemini request
             // (Assume Gemini client and model setup externally)
-            String instructions = "Extract all items and tax from this receipt image. Return as JSON: {items:[{name,price,shareable}],tax}. All values must be strings except 'shareable'. 'shareable' should be boolean.";
-
-            // Example Gemini request structure
-            // Replace with actual Gemini client code
-            // --- BEGIN GEMINI STRUCTURE ---
-            // GeminiClient client = new GeminiClient();
-            // GeminiRequest request = GeminiRequest.builder()
-            //     .model("gemini-2.0-flash")
-            //     .addPart(GeminiPart.inlineData()
-            //         .mimeType(mime)
-            //         .data(base64Image))
-            //     .addPart(GeminiPart.text(instructions))
-            //     .build();
-            // GeminiResponse response = client.generateContent(request);
-            // --- END GEMINI STRUCTURE ---
+            String instructions = "Extract all items and tax from this receipt image. Return as JSON: {items:[{name,price,count}],tax}. 'price' and 'tax' must be numeric strings with only digits and decimals (no currency symbols or other characters). 'count' is an integer for the quantity of that item.";
 
             // TODO: Parse Gemini response to extract items, tax, tip
             // parseResponse(geminiResponse);
-            // Instantiate Gemini client (uses GOOGLE_API_KEY env variable)
-            Client client = new Client();
+            // Instantiate Gemini client with API key from Spring properties
+            Client client = Client.builder().apiKey(googleApiKey).build();
             Content content = Content.fromParts(
                 Part.fromBytes(fileBytes, mime),
                 Part.fromText(instructions)
@@ -130,11 +123,48 @@ public class ParseReceiptWorker {
 
             String geminiResponse = response.text();
             System.out.println("ParseReceiptWorker.java: Gemini parsed receipt for hash " + uniqueHash + ": " + geminiResponse);
-            // TODO: Send results back via WebSocket using uniqueHash
-            // sendResults(uniqueHash, geminiResponse);
+
+            // Expand items with count > 1 into separate entries
+            String expandedResponse = expandItemsByCount(geminiResponse);
+            System.out.println("ParseReceiptWorker.java: Expanded response: " + expandedResponse);
+            sendResults(uniqueHash, expandedResponse);
 
         } catch (Exception e) {
             System.err.println("Error in Gemini OCR processing: " + e.getMessage());
+        }
+    }
+
+    private void sendResults(String uniqueHash, String geminiResponse) {
+        messagingTemplate.convertAndSend("/topic/receipt/" + uniqueHash, geminiResponse);
+        System.out.println("ParseReceiptWorker.java: Sent OCR results via WebSocket for hash: " + uniqueHash);
+    }
+
+    private String expandItemsByCount(String json) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(json);
+            ArrayNode originalItems = (ArrayNode) root.get("items");
+            ArrayNode expandedItems = mapper.createArrayNode();
+
+            for (JsonNode item : originalItems) {
+                int count = item.has("count") ? item.get("count").asInt(1) : 1;
+                double totalPrice = Double.parseDouble(item.get("price").asText());
+                double perItemPrice = totalPrice / count;
+                String priceStr = String.format("%.2f", perItemPrice);
+
+                for (int i = 0; i < count; i++) {
+                    ObjectNode singleItem = mapper.createObjectNode();
+                    singleItem.put("name", item.get("name").asText());
+                    singleItem.put("price", priceStr);
+                    expandedItems.add(singleItem);
+                }
+            }
+
+            ((ObjectNode) root).set("items", expandedItems);
+            return mapper.writeValueAsString(root);
+        } catch (Exception e) {
+            System.err.println("Error expanding items by count: " + e.getMessage());
+            return json; // return original if expansion fails
         }
     }
 }

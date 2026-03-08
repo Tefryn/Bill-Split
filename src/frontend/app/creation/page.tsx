@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/organisms/header";
 import { Input } from "@/components/atoms/input";
 import { ItemEntry } from "@/components/molecules/itemEntry";
 import { useUser } from "@/components/molecules/userContext";
 import { useSearchParams } from 'next/navigation';
+import { Client } from '@stomp/stompjs';
 
 
 interface ItemProps {
@@ -31,6 +32,51 @@ export default function CreateSessionPage() {
     const uniqueHash = searchParams.get('uniqueHash'); // For Stomp Client
 
     const router = useRouter();
+
+    // Subscribe to WebSocket for OCR results when uniqueHash is present
+    useEffect(() => {
+        if (!uniqueHash) return;
+
+        const stompClient = new Client({
+            brokerURL: 'ws://localhost:8080/ws',
+            onConnect: () => {
+                console.log('STOMP connected, subscribing to /topic/receipt/' + uniqueHash);
+                stompClient.subscribe('/topic/receipt/' + uniqueHash, (message) => {
+                    console.log('Raw WebSocket message received:', message.body);
+                    try {
+                        const parsed = JSON.parse(message.body);
+                        console.log('Received OCR results:', parsed);
+
+                        // Populate items from Gemini response
+                        if (parsed.items && Array.isArray(parsed.items)) {
+                            const newItems: ItemProps[] = parsed.items.map((item: { name: string; price: string; shareable: boolean }) => ({
+                                name: item.name,
+                                cost: parseFloat(item.price) || 0,
+                                shareable: item.shareable ?? false,
+                            }));
+                            setItems(newItems);
+                        }
+
+                        // Populate tax
+                        if (parsed.tax) {
+                            setTax(parsed.tax);
+                        }
+                    } catch (err) {
+                        console.error('Error parsing OCR WebSocket message:', err);
+                    }
+                });
+            },
+            onStompError: (frame) => {
+                console.error('STOMP error:', frame.headers['message']);
+            },
+        });
+
+        stompClient.activate();
+
+        return () => {
+            stompClient.deactivate();
+        };
+    }, [uniqueHash]);
     
     const handleCreation = async (e: React.FormEvent) => {
         if(isLoading) {
