@@ -1,19 +1,20 @@
 package com.bill_split.app.service;
 
 import java.math.BigDecimal;
-import com.bill_split.app.data.Session;
-import com.bill_split.app.graphql.SessionInput;
-import com.bill_split.app.data.Item;
-import com.bill_split.app.data.SessionRepository;
-import com.bill_split.app.data.User;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import com.bill_split.app.data.Session;
+import com.bill_split.app.graphql.SessionInput;
+import com.bill_split.app.data.Item;
+import com.bill_split.app.data.SessionRepository;
+import com.bill_split.app.data.User;
+import org.springframework.stereotype.Service;
+import com.bill_split.app.service.SessionService;
 import com.google.protobuf.ByteString;
 import com.bill_split.app.grpc.ParseReceiptEvent;
 
@@ -99,18 +100,34 @@ public class SessionService {
       }
       Item item = optionalItem.get();
 
-      if (!item.getShareable() && item.getClaimedBy().size() != 0 || item.getClaimedBy().contains(userEmail)) {
+      if ((!item.getShareable() && !item.getClaimedBy().isEmpty())|| item.getClaimedBy().contains(userEmail)) {
         return false;
       }
 
       List<String> claimedBy = item.getClaimedBy();
-
       claimedBy.add(userEmail);
       item.setClaimedBy(claimedBy);
-      sessionRepository.save(session);
 
-      // update rest of users
-      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
+      List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
+      for (User claimedUser : users) {
+        BigDecimal itemTotalCost = item.getCost();
+        
+        BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
+        BigDecimal prevCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size()-1,1)));
+        if (claimedUser.getEmail().equals(userEmail)) {
+            prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
+        }
+        BigDecimal costUpdate = newCost.subtract(prevCost);
+        System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
+        claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
+
+        // send change to frontend
+        String destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
+        String message = claimedUser.getTotalCost().toString();
+        socket.convertAndSend(destination, message);
+      }
+      sessionRepository.save(session);
+      checkBillFinalizable(sessionId);
 
       return true;
     }
@@ -140,10 +157,27 @@ public class SessionService {
       System.out.println("Unclaimed total: "+ user.getTotalCost());
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
-      sessionRepository.save(session);
+      String destination = "/topic/session/" + sessionId + "/cost_update/" + userEmail;
+      String message = user.getTotalCost().toString();
+      socket.convertAndSend(destination, message);
+      
+      List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
+      for (User claimedUser : users) {
+        BigDecimal itemTotalCost = item.getCost();
+        
+        BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
+        BigDecimal prevCost= itemTotalCost.divide((new BigDecimal(claimedBy.size()+1)));  
+        BigDecimal costUpdate = newCost.subtract(prevCost);
+        System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
+        claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
 
-      // update rest of users
-      redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
+        // send change to frontend
+        destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
+        message = claimedUser.getTotalCost().toString();
+        socket.convertAndSend(destination, message);
+      }
+      sessionRepository.save(session);
+      checkBillFinalizable(sessionId);
 
       return true;
     }
@@ -184,6 +218,25 @@ public class SessionService {
         System.err.println("Error processing receipt: " + e.getMessage());
         e.printStackTrace();
         return false;
+    }
+  }
+
+  private void checkBillFinalizable(Long sessionId) {
+    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+    if (optionalSession.isPresent()) {
+      Session session = optionalSession.get();
+      List<User> users = session.getUsers();
+      BigDecimal expectedCost = session.getItems().stream().map(Item::getCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+      BigDecimal totalCost = users.stream().map(User::getTotalCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+      Boolean deadWeightUser = users.stream().anyMatch(user -> user.getTotalCost().compareTo(BigDecimal.ZERO) == 0);
+
+      String destination = "/topic/session/" + Long.toString(sessionId);
+      Boolean billCanBeClosedOut = (!deadWeightUser && totalCost.compareTo(expectedCost) >= 0);
+      String status = billCanBeClosedOut ? "Closeable" : "Not Closeable";
+      String payload = "Bill status::" + status;
+
+      socket.convertAndSend(destination, payload);
+      System.out.println("SessionService.java: Sent to WebSocket " + destination + ": " + payload);
     }
   }
 

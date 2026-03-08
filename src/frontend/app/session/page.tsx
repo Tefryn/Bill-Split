@@ -22,8 +22,6 @@ export default function SessionView() {
 
     const router = useRouter();
 
-    console.log('result');
-
     const itemTotal = () => {
         return session?.items.reduce((acc: number, item: Item) => acc + parseFloat(item.cost), 0) || 0;
     };
@@ -97,7 +95,7 @@ export default function SessionView() {
                 const currentUser = currentSession?.users.find((user: User) => user.email === userEmail);
 
                 if (currentUser) {
-                    setUserTotal(currentUser.total_cost);
+                    setUserTotal(parseFloat(currentUser.total_cost));
                 }
             }
         };
@@ -171,7 +169,7 @@ export default function SessionView() {
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.claimItem != null && result.data.claimItem != -1) {
+            } else if (result.data?.claimItem != false) {
                 setIsLoading(false);
                 return true;
             }
@@ -234,8 +232,7 @@ export default function SessionView() {
 
             if (result.errors) {
                 console.error(`GraphQL Error: ${result.errors[0].message}`);
-            } else if (result.data?.unclaimItem != null && result.data.unclaimItem != -1) {
-                console.log(result.data.unclaimItem)
+            } else if (result.data?.unclaimItem != false) {
                 setIsLoading(false);
                 return true;
             }
