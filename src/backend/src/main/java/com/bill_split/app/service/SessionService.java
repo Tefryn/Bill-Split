@@ -7,9 +7,6 @@ import com.bill_split.app.data.Item;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.RedisTemplate;
-import java.util.List;
-import java.util.Optional;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import com.bill_split.app.data.Session;
 import com.bill_split.app.data.SessionRepository;
@@ -20,7 +17,6 @@ import com.bill_split.app.graphql.SessionInput;
 
 @Service
 public class SessionService {
-  private static final String NOTE_SUMMARY_EVENT_QUEUE = "note_summary_event_queue";
   private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
   private final SessionRepository sessionRepository;
@@ -51,7 +47,7 @@ public class SessionService {
       User newUser = new User();
       newUser.setEmail(userEmail);
 
-      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { // if user is not already in session
+      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { 
         users.add(newUser);
         session.setUsers(users);
         sessionRepository.save(session);
@@ -59,7 +55,7 @@ public class SessionService {
 
       return true;
     }
-    return false; // Or throw an exception
+    return false;
   }
 
   public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
@@ -92,7 +88,6 @@ public class SessionService {
       // update rest of users
       redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::claim").getBytes());
 
-      // return user.getTotalCost(); //ENSURE return boolean
       return true;
     }
     System.out.println("Session not found with id: " + sessionId);
@@ -125,7 +120,6 @@ public class SessionService {
       // update rest of users
       redis.opsForList().rightPush("session_claim", (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
 
-      // return user.getTotalCost(); //ENSURE return boolean
       return true;
     }
     return false;

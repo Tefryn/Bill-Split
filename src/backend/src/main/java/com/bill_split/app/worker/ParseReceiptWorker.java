@@ -88,20 +88,14 @@ public class ParseReceiptWorker {
             .build();
 
     private void processReceipt(byte[] event_bytes) {
-        // Gemini API OCR logic using Google GenAI SDK
         try {
-            // 1. Convert imageBytes to base64
             ParseReceiptEvent event = ParseReceiptEvent.parseFrom(event_bytes);
             String uniqueHash = event.getUniqueHash();
             String mime = event.getMime();
             byte[] fileBytes = event.getImageData().toByteArray();
             
-            // ENFORCE Gemini structure: Build Gemini request
-            // (Assume Gemini client and model setup externally)
             String instructions = "Extract all items, tax, and tip from this receipt image. Return as JSON: {items:[{name,price,count}],tax,tip}. 'price', 'tax', and 'tip' must be numeric strings with only digits and decimals (no currency symbols or other characters). 'count' is an integer for the quantity of that item. If no tip is found, use '0.00'.";
 
-            // TODO: Parse Gemini response to extract items, tax, tip
-            // parseResponse(geminiResponse);
             // Instantiate Gemini client with API key from Spring properties
             Client client = Client.builder().apiKey(googleApiKey).build();
             Content content = Content.fromParts(
@@ -126,6 +120,10 @@ public class ParseReceiptWorker {
 
             // Expand items with count > 1 into separate entries
             String expandedResponse = expandItemsByCount(geminiResponse);
+            if (expandedResponse == null) {
+                System.err.println("Error in parsing Gemini response: "+ geminiResponse);
+                return;
+            }
             sendResults(uniqueHash, expandedResponse);
 
         } catch (Exception e) {
@@ -162,7 +160,7 @@ public class ParseReceiptWorker {
             return mapper.writeValueAsString(root);
         } catch (Exception e) {
             System.err.println("Error expanding items by count: " + e.getMessage());
-            return json; // return original if expansion fails
+            return null;
         }
     }
 }

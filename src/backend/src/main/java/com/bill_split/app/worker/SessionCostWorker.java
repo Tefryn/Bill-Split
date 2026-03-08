@@ -4,10 +4,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +21,10 @@ import com.bill_split.app.data.User;
 public class SessionCostWorker {
 
     private final SessionRepository sessionRepository;
-    private final StringRedisTemplate redis;
+    private final RedisTemplate<String, byte[]> redis;
     private final SimpMessagingTemplate socket;
 
-    public SessionCostWorker(SessionRepository sessionRepository, StringRedisTemplate redis, SimpMessagingTemplate socket) {
+    public SessionCostWorker(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
         this.sessionRepository = sessionRepository;
         this.redis = redis;
         this.socket = socket;
@@ -32,26 +33,29 @@ public class SessionCostWorker {
     @EventListener(ApplicationReadyEvent.class)
     public void startWorker() {
         new Thread(() -> {
-        System.out
-            .println("SessionCostWorker.java: Session worker started. Listening for session_claim events");
-        while (true) {
-            try {
-            String event = redis.opsForList().leftPop("session_claim", Duration.ofSeconds(30));
+            System.out
+                .println("SessionCostWorker.java: Session worker started. Listening for session_claim events");
+            while (true) {
+                try {
+                    byte[] buffer = redis.opsForList().leftPop("session_claim", Duration.ofSeconds(30));
+                    if (buffer != null) {
+                        String event = new String(buffer, StandardCharsets.UTF_8);
 
-            if (event != null) {
-                System.out.println("SessionCostWorker.java: Received event: " + event);
-                recalculateCosts(event);
+                        if (event != null) {
+                            System.out.println("SessionCostWorker.java: Received event: " + event);
+                            recalculateCosts(event);
+                        }
+                    }
+                    // if null, just loop and wait again
+                } catch (Exception e) {
+                    if (e.getMessage() != null && e.getMessage().contains("timed out")) {
+                        // ignore timeout, just loop again
+                        continue;
+                    }
+                    System.err.println("Error processing event: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
-            // if null, just loop and wait again
-            } catch (Exception e) {
-            if (e.getMessage() != null && e.getMessage().contains("timed out")) {
-                // ignore timeout, just loop again
-                continue;
-            }
-            System.err.println("Error processing event: " + e.getMessage());
-            e.printStackTrace();
-            }
-        }
         }).start();
     }
 
