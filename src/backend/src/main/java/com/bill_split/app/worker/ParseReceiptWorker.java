@@ -3,6 +3,8 @@ package com.bill_split.app.worker;
 import java.time.Duration;
 import java.util.Map;
 
+import javax.annotation.PreDestroy;
+
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -34,6 +36,8 @@ public class ParseReceiptWorker {
     private final RedisTemplate<String, byte[]> redis;
     private final SimpMessagingTemplate messagingTemplate;
     private final String googleApiKey;
+    private volatile boolean running = true;
+    private Thread workerThread;
 
     public ParseReceiptWorker(RedisTemplate<String, byte[]> redis,
                               SimpMessagingTemplate messagingTemplate,
@@ -45,10 +49,10 @@ public class ParseReceiptWorker {
 
     @EventListener(ApplicationReadyEvent.class)
     public void startWorker() {
-        new Thread(() -> {
+        workerThread = new Thread(() -> {
             System.out
                     .println("ParseReceiptWorker.java: Receipt Worker started. Listening for parse_receipt_event_queue events");
-            while (!Thread.currentThread().isInterrupted()) {
+            while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     byte[] event_bytes = redis.opsForList().leftPop("parse_receipt_event_queue", Duration.ofSeconds(30));
 
@@ -57,6 +61,9 @@ public class ParseReceiptWorker {
                     }
                     // if null, just loop and wait again
                 } catch (Exception e) {
+                    if (!running) {
+                        break;
+                    }
                     if (e.getMessage() != null && e.getMessage().contains("timed out")) {
                         // ignore timeout, just loop again
                         continue;
@@ -64,7 +71,23 @@ public class ParseReceiptWorker {
                     System.err.println("Error processing event: " + e.getMessage());
                 }
             }
-        }).start();
+            System.out.println("ParseReceiptWorker.java: Receipt Worker stopped.");
+        });
+        workerThread.setDaemon(true);
+        workerThread.start();
+    }
+
+    @PreDestroy
+    public void stopWorker() {
+        running = false;
+        if (workerThread != null) {
+            workerThread.interrupt();
+            try {
+                workerThread.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     // Structured output: define JSON schema for receipt

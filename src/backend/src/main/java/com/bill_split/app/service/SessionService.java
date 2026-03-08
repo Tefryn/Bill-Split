@@ -4,18 +4,18 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import com.bill_split.app.data.Item;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.bill_split.app.data.Item;
 import com.bill_split.app.data.Session;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
-import com.google.protobuf.ByteString;
-import com.bill_split.app.grpc.ParseReceiptEvent;
 import com.bill_split.app.graphql.SessionInput;
+import com.bill_split.app.grpc.ParseReceiptEvent;
+import com.google.protobuf.ByteString;
 
 @Service
 public class SessionService {
