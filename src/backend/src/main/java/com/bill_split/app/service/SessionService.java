@@ -8,6 +8,8 @@ import com.bill_split.app.data.Item;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
 import com.bill_split.app.data.Session;
 import com.bill_split.app.data.SessionRepository;
 import com.bill_split.app.data.User;
@@ -18,14 +20,15 @@ import com.bill_split.app.graphql.SessionInput;
 @Service
 public class SessionService {
   private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
-  private static final String SESSION_CLAIM_EVENT_QUEUE = "session_claim";
 
   private final SessionRepository sessionRepository;
   private final RedisTemplate<String, byte[]> redis;
+  private final SimpMessagingTemplate socket;
 
-  public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis) {
+  public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
     this.sessionRepository = sessionRepository;
     this.redis = redis;
+    this.socket = socket;
   }
 
   public Optional<Session> getSessionById(Long sessionId) {
@@ -99,11 +102,13 @@ public class SessionService {
         BigDecimal costUpdate = newCost.subtract(prevCost);
         System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
         claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
+
+        // send change to frontend
+        String destination = "/topic/session/" + sessionId + "/cost_update/" + email;
+        String message = claimedUser.getTotalCost().toString();
+        socket.convertAndSend(destination, message);
       }
       sessionRepository.save(session);
-
-      // update users
-      redis.opsForList().rightPush(SESSION_CLAIM_EVENT_QUEUE, (sessionId + "::" + itemId).getBytes());
 
       return true;
     }
@@ -132,6 +137,9 @@ public class SessionService {
       user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
       claimedBy.remove(userEmail);
       item.setClaimedBy(claimedBy);
+      String destination = "/topic/session/" + sessionId + "/cost_update/" + userEmail;
+      String message = user.getTotalCost().toString();
+      socket.convertAndSend(destination, message);
       
       for (String email : claimedBy) {
         Optional<User> optionalOtherUser = session.getUsers().stream().filter(n -> n.getEmail().equals(email)).findFirst();
@@ -146,11 +154,13 @@ public class SessionService {
         BigDecimal costUpdate = newCost.subtract(prevCost);
         System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
         claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
+
+        // send change to frontend
+        destination = "/topic/session/" + sessionId + "/cost_update/" + email;
+        message = claimedUser.getTotalCost().toString();
+        socket.convertAndSend(destination, message);
       }
       sessionRepository.save(session);
-
-      // update users
-      redis.opsForList().rightPush(SESSION_CLAIM_EVENT_QUEUE, (sessionId + "::" + itemId + "::" + userEmail + "::unclaim").getBytes());
 
       return true;
     }
