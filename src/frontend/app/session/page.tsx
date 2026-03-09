@@ -26,11 +26,19 @@ export default function SessionView() {
     };
 
     const taxAmount = () => {
-        return itemTotal() * ((session?.tax || 0) / 100);
+        const total = itemTotal();
+        if (total == 0) {
+            return 0;
+        }
+        return userTotal / itemTotal() * (session?.tax || 0);
     };
 
     const tipAmount = () => {
-        return itemTotal() * ((session?.tip || 0) / 100);
+        const total = itemTotal();
+        if (total == 0) {
+            return 0;
+        }
+        return userTotal / itemTotal() * (session?.tip || 0);
     };
 
     const fetchSession = useCallback(async () => {
@@ -337,7 +345,7 @@ export default function SessionView() {
 
         <div>
               <h2 className="text-lg font-semibold mb-4 text-black">Welcome, {userEmail}</h2>
-              <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${Number(userTotal).toFixed(2)}</h2>
+              <h2 className="text-lg font-semibold mb-4 text-black">Your Total: ${(Number(userTotal)+taxAmount()+tipAmount()).toFixed(2)}</h2>
         </div>
 
         <div>
@@ -358,15 +366,15 @@ export default function SessionView() {
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tax: {session.tax}% - ${taxAmount().toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Tax: - ${Number(session?.tax || 0).toFixed(2)}</h2>
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Tip: {session.tip}% - ${tipAmount().toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Tip: - ${Number(session?.tip || 0).toFixed(2)}</h2>
         </div>
 
         <div>
-            <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+taxAmount()+tipAmount()).toFixed(2)}</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal()+Number(session?.tip || 0) + Number(session?.tax||0)).toFixed(2)}</h2>
         </div>
 
         <div>
