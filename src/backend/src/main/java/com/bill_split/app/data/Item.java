@@ -16,70 +16,71 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "items")
 public class Item {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
 
-  private String name;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  private BigDecimal cost;
+    private String name;
 
-  @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(name = "item_claimed_by", joinColumns = @JoinColumn(name = "item_id"))
-  private List<String> claimedBy;
+    private BigDecimal cost;
 
-  private Boolean shareable = false;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "item_claimed_by", joinColumns = @JoinColumn(name = "item_id"))
+    private List<String> claimedBy;
 
-  public Item() {
-  }
+    private Boolean shareable = false;
 
-  public Item(String name, BigDecimal cost) {
-    this.name = name;
-    this.cost = cost;
-  }
+    public Item() {
+    }
 
-  public Long getId() {
-    return id;
-  }
+    public Item(String name, BigDecimal cost) {
+        this.name = name;
+        this.cost = cost;
+    }
 
-  public void setId(Long id) {
-    this.id = id;
-  }
+    public Long getId() {
+        return id;
+    }
 
-  public String getName() {
-    return name;
-  }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    public String getName() {
+        return name;
+    }
 
-  public BigDecimal getSplitCost() {
-    int split = !claimedBy.isEmpty() ? claimedBy.size() : 1;
-    return cost.divide(BigDecimal.valueOf(split), 2, BigDecimal.ROUND_HALF_UP);
-  }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-  public BigDecimal getCost() {
-    return cost;
-  }
+    public BigDecimal getSplitCost() {
+        int split = !claimedBy.isEmpty() ? claimedBy.size() : 1;
+        return cost.divide(BigDecimal.valueOf(split), 2, BigDecimal.ROUND_HALF_UP);
+    }
 
-  public void setCost(BigDecimal cost) {
-    this.cost = cost;
-  }
+    public BigDecimal getCost() {
+        return cost;
+    }
 
-  public List<String> getClaimedBy() {
-    return claimedBy;
-  }
+    public void setCost(BigDecimal cost) {
+        this.cost = cost;
+    }
 
-  public void setClaimedBy(List<String> claimedBy) {
-    this.claimedBy = claimedBy;
-  }
+    public List<String> getClaimedBy() {
+        return claimedBy;
+    }
 
-  public Boolean getShareable() {
-    return shareable;
-  }
+    public void setClaimedBy(List<String> claimedBy) {
+        this.claimedBy = claimedBy;
+    }
 
-  public void setShareable(Boolean shareable) {
-    this.shareable = shareable;
-  }
+    public Boolean getShareable() {
+        return shareable;
+    }
+
+    public void setShareable(Boolean shareable) {
+        this.shareable = shareable;
+    }
 }

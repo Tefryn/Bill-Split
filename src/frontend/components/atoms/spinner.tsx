@@ -5,7 +5,7 @@ interface SpinnerProps {
 export default function Spinner({ size = 8 }: SpinnerProps) {
   const h = `${size}rem`;
   return (
-    <div 
+    <div
       className="flex flex-col items-center justify-center py-12"
       role="status"
       aria-live="polite"

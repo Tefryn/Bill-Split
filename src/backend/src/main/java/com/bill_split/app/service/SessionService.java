@@ -19,188 +19,188 @@ import com.google.protobuf.ByteString;
 
 @Service
 public class SessionService {
-  private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
-  private final SessionRepository sessionRepository;
-  private final RedisTemplate<String, byte[]> redis;
-  private final SimpMessagingTemplate socket;
+    private static final String PARSE_RECEIPT_EVENT_QUEUE = "parse_receipt_event_queue";
 
-  public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
-    this.sessionRepository = sessionRepository;
-    this.redis = redis;
-    this.socket = socket;
-  }
+    private final SessionRepository sessionRepository;
+    private final RedisTemplate<String, byte[]> redis;
+    private final SimpMessagingTemplate socket;
 
-  public Optional<Session> getSessionById(Long sessionId) {
-    return sessionRepository.findById(sessionId);
-  }
-
-  public Session createSession(SessionInput input) {
-    System.out.print("Creating session with name: " + input.getItems());
-    Session session = sessionRepository.save(new Session(input));
-
-    return session;
-  }
-
-  public Boolean joinSession(Long sessionId, String userEmail) {
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      List<User> users = session.getUsers();
-
-      User newUser = new User();
-      newUser.setEmail(userEmail);
-
-      if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) { 
-        users.add(newUser);
-        session.setUsers(users);
-        sessionRepository.save(session);
-      }
-
-      return true;
+    public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
+        this.sessionRepository = sessionRepository;
+        this.redis = redis;
+        this.socket = socket;
     }
-    return false;
-  }
 
-  public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
-    System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      System.out.println(
-          "Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
-      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
-      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
+    public Optional<Session> getSessionById(Long sessionId) {
+        return sessionRepository.findById(sessionId);
+    }
 
-      System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
-      if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return false;
-      }
-      Item item = optionalItem.get();
+    public Session createSession(SessionInput input) {
+        System.out.print("Creating session with name: " + input.getItems());
+        Session session = sessionRepository.save(new Session(input));
 
-      if ((!item.getShareable() && !item.getClaimedBy().isEmpty())|| item.getClaimedBy().contains(userEmail)) {
-        return false;
-      }
-      String claimDestination = "/topic/session/" + sessionId + "/new_claim";
-      String claimMessage = item.getId() + "::" + userEmail;
-      socket.convertAndSend(claimDestination, claimMessage);
+        return session;
+    }
 
-      List<String> claimedBy = item.getClaimedBy();
-      claimedBy.add(userEmail);
-      item.setClaimedBy(claimedBy);
+    public Boolean joinSession(Long sessionId, String userEmail) {
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            List<User> users = session.getUsers();
 
-      List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
-      for (User claimedUser : users) {
-        BigDecimal itemTotalCost = item.getCost();
-        
-        BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
-        BigDecimal prevCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size()-1,1)));
-        if (claimedUser.getEmail().equals(userEmail)) {
-            prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
+            User newUser = new User();
+            newUser.setEmail(userEmail);
+
+            if (!session.getUsers().stream().anyMatch(n -> n.getEmail().equals(userEmail))) {
+                users.add(newUser);
+                session.setUsers(users);
+                sessionRepository.save(session);
+            }
+
+            return true;
         }
-        BigDecimal costUpdate = newCost.subtract(prevCost);
-        System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
-        claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
-
-        // send change to frontend
-        String destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
-        String message = claimedUser.getTotalCost().toString();
-        socket.convertAndSend(destination, message);
-      }
-      sessionRepository.save(session);
-
-      return true;
+        return false;
     }
-    System.out.println("Session not found with id: " + sessionId);
-    return false;
-  }
+
+    public Boolean claimItem(Long sessionId, Long itemId, String userEmail) {
+        System.out.println("claimItem called: sessionId=" + sessionId + ", itemId=" + itemId + ", userEmail=" + userEmail);
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            System.out.println(
+                    "Session found. Users count: " + session.getUsers().size() + ", Items count: " + session.getItems().size());
+            Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
+            Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
+
+            System.out.println("User present: " + optionalUser.isPresent() + ", Item present: " + optionalItem.isPresent());
+            if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
+                return false;
+            }
+            Item item = optionalItem.get();
+
+            if ((!item.getShareable() && !item.getClaimedBy().isEmpty()) || item.getClaimedBy().contains(userEmail)) {
+                return false;
+            }
+            String claimDestination = "/topic/session/" + sessionId + "/new_claim";
+            String claimMessage = item.getId() + "::" + userEmail;
+            socket.convertAndSend(claimDestination, claimMessage);
+
+            List<String> claimedBy = item.getClaimedBy();
+            claimedBy.add(userEmail);
+            item.setClaimedBy(claimedBy);
+
+            List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
+            for (User claimedUser : users) {
+                BigDecimal itemTotalCost = item.getCost();
+
+                BigDecimal newCost = itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(), 1)));
+                BigDecimal prevCost = itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size() - 1, 1)));
+                if (claimedUser.getEmail().equals(userEmail)) {
+                    prevCost = BigDecimal.ZERO; // if claiming, the new user had no cost before
+                }
+                BigDecimal costUpdate = newCost.subtract(prevCost);
+                System.out.println("Claiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
+                claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
+
+                // send change to frontend
+                String destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
+                String message = claimedUser.getTotalCost().toString();
+                socket.convertAndSend(destination, message);
+            }
+            sessionRepository.save(session);
+
+            return true;
+        }
+        System.out.println("Session not found with id: " + sessionId);
+        return false;
+    }
 
     public Boolean unclaimItem(Long sessionId, Long itemId, String userEmail) {
-    Optional<Session> optionalSession = sessionRepository.findById(sessionId);
-    if (optionalSession.isPresent()) {
-      Session session = optionalSession.get();
-      Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
-      Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
+        Optional<Session> optionalSession = sessionRepository.findById(sessionId);
+        if (optionalSession.isPresent()) {
+            Session session = optionalSession.get();
+            Optional<User> optionalUser = session.getUsers().stream().filter(n -> n.getEmail().equals(userEmail)).findFirst();
+            Optional<Item> optionalItem = session.getItems().stream().filter(n -> n.getId().equals(itemId)).findFirst();
 
-      if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
-        return false;
-      }
-      User user = optionalUser.get();
-      Item item = optionalItem.get();
+            if (!optionalUser.isPresent() || !optionalItem.isPresent()) {
+                return false;
+            }
+            User user = optionalUser.get();
+            Item item = optionalItem.get();
 
-      if (!item.getClaimedBy().contains(userEmail)) {
-        return false;
-      }
+            if (!item.getClaimedBy().contains(userEmail)) {
+                return false;
+            }
 
-      String unclaimDestination = "/topic/session/" + sessionId + "/new_unclaim";
-      String unclaimMessage = item.getId() + "::" + userEmail;
-      socket.convertAndSend(unclaimDestination, unclaimMessage);
+            String unclaimDestination = "/topic/session/" + sessionId + "/new_unclaim";
+            String unclaimMessage = item.getId() + "::" + userEmail;
+            socket.convertAndSend(unclaimDestination, unclaimMessage);
 
-      List<String> claimedBy = item.getClaimedBy();
-      user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
-      claimedBy.remove(userEmail);
-      item.setClaimedBy(claimedBy);
-      String destination = "/topic/session/" + sessionId + "/cost_update/" + userEmail;
-      String message = user.getTotalCost().toString();
-      socket.convertAndSend(destination, message);
-      
-      List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
-      for (User claimedUser : users) {
-        BigDecimal itemTotalCost = item.getCost();
-        
-        BigDecimal newCost= itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(),1)));
-        BigDecimal prevCost= itemTotalCost.divide((new BigDecimal(claimedBy.size()+1)));  
-        BigDecimal costUpdate = newCost.subtract(prevCost);
-        System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
-        claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
+            List<String> claimedBy = item.getClaimedBy();
+            user.setTotalCost(user.getTotalCost().subtract(item.getSplitCost()));
+            claimedBy.remove(userEmail);
+            item.setClaimedBy(claimedBy);
+            String destination = "/topic/session/" + sessionId + "/cost_update/" + userEmail;
+            String message = user.getTotalCost().toString();
+            socket.convertAndSend(destination, message);
 
-        // send change to frontend
-        destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
-        message = claimedUser.getTotalCost().toString();
-        socket.convertAndSend(destination, message);
-      }
-      sessionRepository.save(session);
+            List<User> users = session.getUsers().stream().filter(n -> claimedBy.contains(n.getEmail())).toList();
+            for (User claimedUser : users) {
+                BigDecimal itemTotalCost = item.getCost();
 
-      return true;
-    }
-    return false;
-  }
+                BigDecimal newCost = itemTotalCost.divide(new BigDecimal(Math.max(claimedBy.size(), 1)));
+                BigDecimal prevCost = itemTotalCost.divide((new BigDecimal(claimedBy.size() + 1)));
+                BigDecimal costUpdate = newCost.subtract(prevCost);
+                System.out.println("Unclaiming item. New cost: " + newCost + ", Previous cost: " + prevCost + ", Cost update: " + costUpdate);
+                claimedUser.setTotalCost(claimedUser.getTotalCost().add(costUpdate));
 
-  public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
-    try {
-      // Validate file
-      if (file == null || file.isEmpty()) {
-        System.out.println("Empty file");
-        return false;
-      }
+                // send change to frontend
+                destination = "/topic/session/" + sessionId + "/cost_update/" + claimedUser.getEmail();
+                message = claimedUser.getTotalCost().toString();
+                socket.convertAndSend(destination, message);
+            }
+            sessionRepository.save(session);
 
-      // Validate it's an image
-      String contentType = file.getContentType();
-      if (contentType == null || !contentType.startsWith("image/")) {
-        System.out.println("Not an image: " + contentType);
-        return false;
-      }
-
-      // Get file bytes and create protobuf event
-      byte[] imageBytes = file.getBytes();
-      ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
-          .setUniqueHash(uniqueHash)
-          .setImageData(ByteString.copyFrom(imageBytes))
-          .setMime(contentType)
-          .build();
-
-      // Queue the serialized protobuf for OCR processing
-      redis.opsForList().rightPush(PARSE_RECEIPT_EVENT_QUEUE, event.toByteArray());
-
-      System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + " with hash: " + uniqueHash);
-      return true;
-
-    } catch (Exception e) {
-        System.err.println("Error processing receipt: " + e.getMessage());
-        e.printStackTrace();
+            return true;
+        }
         return false;
     }
-  }
+
+    public Boolean parseReceipt(MultipartFile file, String uniqueHash) {
+        try {
+            // Validate file
+            if (file == null || file.isEmpty()) {
+                System.out.println("Empty file");
+                return false;
+            }
+
+            // Validate it's an image
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                System.out.println("Not an image: " + contentType);
+                return false;
+            }
+
+            // Get file bytes and create protobuf event
+            byte[] imageBytes = file.getBytes();
+            ParseReceiptEvent event = ParseReceiptEvent.newBuilder()
+                    .setUniqueHash(uniqueHash)
+                    .setImageData(ByteString.copyFrom(imageBytes))
+                    .setMime(contentType)
+                    .build();
+
+            // Queue the serialized protobuf for OCR processing
+            redis.opsForList().rightPush(PARSE_RECEIPT_EVENT_QUEUE, event.toByteArray());
+
+            System.out.println("Receipt parsing queued: " + file.getOriginalFilename() + " with hash: " + uniqueHash);
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Error processing receipt: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 }
-
