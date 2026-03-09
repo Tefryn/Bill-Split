@@ -10,8 +10,6 @@ import { useSearchParams } from 'next/navigation';
 import { ItemEditor } from "@/components/molecules/itemEditor";
 import { Client } from "@stomp/stompjs";
 import { ItemEditorSkeleton } from "@/components/molecules/itemEditorSkeleton";
-import { clear } from "console";
-
 
 interface ItemProps {
     name: string;
@@ -25,23 +23,18 @@ export default function CreateSessionPage() {
     const [sessionName, setSessionName] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [receiptLoading, setReceiptLoading] = useState(true);
     const [tax, setTax] = useState("");
     const [tip, setTip] = useState("");
     const [items, setItems] = useState<ItemProps[]>([]);
     const API_URL = `http://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}` || "http://localhost:8080";
     const searchParams = useSearchParams();
     const uniqueHash = searchParams.get('uniqueHash'); // For Stomp Client
+    const [receiptLoading, setReceiptLoading] = useState(!!uniqueHash);
 
     const router = useRouter();
 
     // Subscribe to WebSocket for OCR results when uniqueHash is present
     useEffect(() => {
-        if (!uniqueHash) {
-            setReceiptLoading(false);
-            return;
-        } 
-
         const stompClient = new Client({
             brokerURL: `ws://${process.env.NEXT_PUBLIC_BACKEND_IP}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/ws` || `ws://localhost:8080/ws`,
             onConnect: () => {
@@ -202,7 +195,7 @@ export default function CreateSessionPage() {
         return items.reduce((total, item) => total + item.cost, 0);
     }
 
-    const taxAmount = () => { // TODO: Should be amount not percent
+    const taxAmount = () => {
         const taxValue = parseFloat(tax);
         if (isNaN(taxValue)) {
             return 0;
@@ -240,13 +233,26 @@ export default function CreateSessionPage() {
                     />
                 </div>
 
-                {/* Item Entry */}
+                {/* Email Entry */}
                 <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                        Your Email:
+                    </label>
+                    <Input
+                        type="text"
+                        value={userEmail}
+                        onChange={setUserEmail}
+                        placeholder="Enter your email"
+                    />
+                </div>
+
+                {/* Item Entry */}
+                {!receiptLoading && <div>
                     <label className="block text-sm font-medium mb-2 text-gray-700">
                         Add Items:
                     </label>
                     <ItemEntry addItem={addItem}></ItemEntry>
-                </div>
+                </div>}
 
                 {/* Item Display */}
                 <div>
@@ -270,20 +276,7 @@ export default function CreateSessionPage() {
                     </ul>
                 </div>
 
-                {/* Email Entry */}
-                <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                        Your Email:
-                    </label>
-                    <Input
-                        type="text"
-                        value={userEmail}
-                        onChange={setUserEmail}
-                        placeholder="Enter your email"
-                    />
-                </div>
-
-                <div className="flex gap-4">
+                {!receiptLoading && <div className="flex gap-4">
                     { /* Tax Entry */}
                     <div className="flex-3">
                         <label className="block text-sm font-medium mb-2 text-gray-700">
@@ -293,7 +286,7 @@ export default function CreateSessionPage() {
                             type='number'
                             value={tax}
                             onChange={setTax}
-                            placeholder="in $"
+                            placeholder="0.00"
                         />
                     </div>
                     { /* Tip Entry */}
@@ -305,45 +298,47 @@ export default function CreateSessionPage() {
                             type="number"
                             value={tip}
                             onChange={setTip}
-                            placeholder="in $"
+                            placeholder="0.00"
                         />
                     </div>
-                </div>
+                </div>}
 
                 <hr className="border-t border-gray-900 my-8" />
 
                 { /* Confirmation Display */}
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Session Name: {sessionName}</h2>
-                </div>
+                {!receiptLoading && <div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Session Name: {sessionName}</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Items: ${itemTotal().toFixed(2)}</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Your Email: {userEmail}</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Your Email: {userEmail}</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Tax: ${taxAmount().toFixed(2)}</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Tax: ${taxAmount().toFixed(2)}</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Tip: ${tipAmount().toFixed(2)}</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Tip: ${tipAmount().toFixed(2)}</h2>
+                    </div>
 
-                <div>
-                    <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal() + taxAmount() + tipAmount()).toFixed(2)}</h2>
-                </div>
+                    <div>
+                        <h2 className="text-lg font-semibold mb-4 text-black">Total: ${(itemTotal() + taxAmount() + tipAmount()).toFixed(2)}</h2>
+                    </div>
+                </div>}
 
                 <h2 className="text-lg font-semibold mb-4 text-red-600">{errMessage}</h2>
 
-                <button
+                {!receiptLoading && <button
                     onClick={handleCreation}
                     className="w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700">
                     Create Session
-                </button>
+                </button>}
             </section>
         </main>
     );
