@@ -78,13 +78,13 @@ export default function CreateSessionPage() {
         stompClient.activate();
 
         const timeoutId = setTimeout(() => {
-        if (receiptLoading) {
-            console.warn("OCR Request timed out after 5 seconds.");
-            setReceiptLoading(false);
-            setErrMessage("OCR took too long. Please enter items manually.");
-            setTimeout(() => setErrMessage(""), 5000);
-            
-            stompClient.deactivate(); 
+            if (receiptLoading) {
+                console.warn("OCR Request timed out after 5 seconds.");
+                setReceiptLoading(false);
+                setErrMessage("OCR took too long. Please enter items manually.");
+                setTimeout(() => setErrMessage(""), 5000);
+
+                stompClient.deactivate();
             }
         }, 15000); // stop listening after 15 seconds
 
@@ -268,7 +268,7 @@ export default function CreateSessionPage() {
                                 onDelete={handleDeleteItem}>
                             </ItemEditor>
                         ))}
-                        {receiptLoading && 
+                        {receiptLoading &&
                             Array(3).fill(0).map((_, index) => (
                                 <ItemEditorSkeleton key={index} />
                             ))

@@ -29,18 +29,18 @@ export function ItemEntry({ addItem }: ItemEntryProps) {
     <div className="flex gap-4 items-end bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
       <div className="flex-1">
         <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">Item Name</label>
-        <Input 
-          value={name} 
-          onChange={setName} 
-          placeholder="e.g. Pizza" 
+        <Input
+          value={name}
+          onChange={setName}
+          placeholder="e.g. Pizza"
         />
       </div>
       <div className="w-32">
         <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">Cost ($)</label>
-        <Input 
-          value={cost} 
-          onChange={setCost} 
-          placeholder="0.00" 
+        <Input
+          value={cost}
+          onChange={setCost}
+          placeholder="0.00"
         />
       </div>
       <div className="w-32">

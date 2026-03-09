@@ -6,7 +6,7 @@ export const ItemEditorSkeleton = () => {
         <div className="flex flex-col space-y-2">
           {/* Item Name Placeholder */}
           <div className="h-6 w-32 bg-gray-200 rounded-md animate-shimmer" />
-          
+
           {/* Subtext Placeholder */}
           <div className="h-4 w-48 bg-gray-100 rounded-md animate-shimmer" />
         </div>

@@ -40,8 +40,8 @@ public class ParseReceiptWorker {
     private Thread workerThread;
 
     public ParseReceiptWorker(RedisTemplate<String, byte[]> redis,
-                              SimpMessagingTemplate messagingTemplate,
-                              @org.springframework.beans.factory.annotation.Value("${GOOGLE_API_KEY}") String googleApiKey) {
+            SimpMessagingTemplate messagingTemplate,
+            @org.springframework.beans.factory.annotation.Value("${GOOGLE_API_KEY}") String googleApiKey) {
         this.redis = redis;
         this.messagingTemplate = messagingTemplate;
         this.googleApiKey = googleApiKey;
@@ -116,26 +116,26 @@ public class ParseReceiptWorker {
             String uniqueHash = event.getUniqueHash();
             String mime = event.getMime();
             byte[] fileBytes = event.getImageData().toByteArray();
-            
+
             String instructions = "Extract all items, tax, and tip from this receipt image. Return as JSON: {items:[{name,price,count}],tax,tip}. 'price', 'tax', and 'tip' must be numeric strings with only digits and decimals (no currency symbols or other characters). 'count' is an integer for the quantity of that item. If no tip is found, use '0.00'.";
 
             // Instantiate Gemini client with API key from Spring properties
             Client client = Client.builder().apiKey(googleApiKey).build();
             Content content = Content.fromParts(
-                Part.fromBytes(fileBytes, mime),
-                Part.fromText(instructions)
+                    Part.fromBytes(fileBytes, mime),
+                    Part.fromText(instructions)
             );
 
             GenerateContentConfig config = GenerateContentConfig.builder()
-                .responseMimeType("application/json")
-                .candidateCount(1)
-                .responseSchema(schema)
-                .build();
+                    .responseMimeType("application/json")
+                    .candidateCount(1)
+                    .responseSchema(schema)
+                    .build();
 
             GenerateContentResponse response = client.models.generateContent(
-                "gemini-2.5-flash",
-                content,
-                config
+                    "gemini-2.5-flash",
+                    content,
+                    config
             );
 
             String geminiResponse = response.text();
@@ -144,7 +144,7 @@ public class ParseReceiptWorker {
             // Expand items with count > 1 into separate entries
             String expandedResponse = expandItemsByCount(geminiResponse);
             if (expandedResponse == null) {
-                System.err.println("Error in parsing Gemini response: "+ geminiResponse);
+                System.err.println("Error in parsing Gemini response: " + geminiResponse);
                 return;
             }
             sendResults(uniqueHash, expandedResponse);
